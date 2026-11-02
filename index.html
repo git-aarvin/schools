@@ -586,7 +586,7 @@ Page = () =>
 	}" onclick="${() => jump(1)}">${
 		Icon("m15 14 5-5-5-5M20 9H9.5a5.5 5.5 0 0 0 0 11H13")
 	}</button><span class="sp" title="Use Save to choose a file; changes then autosave to it">${
-		fileName ? `${fileName` : "Not saved to a file"
+		fileName ? fileName : "Not saved to a file"
 	}</span><button type="button" title="Save (${MOD}+S)" onclick="${() =>
 		saveFile()}">${
 		Icon("M4 3h13l3 3v15H4zM8 3v6h8V3M8 21v-7h8v7")
