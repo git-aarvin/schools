@@ -219,505 +219,505 @@ kbd {
 		</main>
 		<div id="t"></div>
 		<script type="module">
-		const salt = "v" + Math.random().toString(36).slice(2),
-	pattern = new RegExp(salt + "(\\d+);"),
-	cache = new WeakMap(),
-	roots = new WeakMap(),
-	html = (t, ...e) => ({ strings: t, values: e }),
-	svg = (t, ...e) => ({ strings: t, values: e, svg: !0 }),
-	nodes = t => {
-		const e = document.createTreeWalker(t, 129), a = [];
-		for (; e.nextNode();) a.push(e.currentNode);
-		return a;
-	},
-	compile = (t, e) => {
-		let a = cache.get(t);
-		if (a) return a;
-		let n = "", r = !1;
-		t.forEach((e, a) => {
-			n += e;
-			const s = e.lastIndexOf("<"), o = e.lastIndexOf(">");
-			s + o > -2 && (r = s > o),
-				a < t.length - 1
-				&& (n += r ? `${salt}${a};` : `\x3c!--${salt}${a}--\x3e`);
-		});
-		const s = document.createElement("template");
-		s.innerHTML = e ? "<svg>" + n + "</svg>" : n,
-			e
-			&& s.content.replaceChildren(...s.content.firstChild.childNodes);
-		const o = [], l = [];
-		return nodes(s.content).forEach((t, e) => {
-			if (8 === t.nodeType) {
-				t.data.startsWith(salt)
-					&& o.push({ index: e, which: +t.data.slice(salt.length) });
-			} else {for (const { name: a, value: n } of [...t.attributes]) {
-					n.includes(salt)
-						&& (t.removeAttribute(a),
-							l.push({ index: e, name: a, pieces: n.split(pattern) }));
-				}}
+const salt = "v" + Math.random().toString(36).slice(2),
+pattern = new RegExp(salt + "(\\d+);"),
+cache = new WeakMap(),
+roots = new WeakMap(),
+html = (t, ...e) => ({ strings: t, values: e }),
+svg = (t, ...e) => ({ strings: t, values: e, svg: !0 }),
+nodes = t => {
+	const e = document.createTreeWalker(t, 129), a = [];
+	for (; e.nextNode();) a.push(e.currentNode);
+	return a;
+},
+compile = (t, e) => {
+	let a = cache.get(t);
+	if (a) return a;
+	let n = "", r = !1;
+	t.forEach((e, a) => {
+		n += e;
+		const s = e.lastIndexOf("<"), o = e.lastIndexOf(">");
+		s + o > -2 && (r = s > o),
+			a < t.length - 1
+			&& (n += r ? `${salt}${a};` : `\x3c!--${salt}${a}--\x3e`);
+	});
+	const s = document.createElement("template");
+	s.innerHTML = e ? "<svg>" + n + "</svg>" : n,
+		e
+		&& s.content.replaceChildren(...s.content.firstChild.childNodes);
+	const o = [], l = [];
+	return nodes(s.content).forEach((t, e) => {
+		if (8 === t.nodeType) {
+			t.data.startsWith(salt)
+				&& o.push({ index: e, which: +t.data.slice(salt.length) });
+		} else {for (const { name: a, value: n } of [...t.attributes]) {
+				n.includes(salt)
+					&& (t.removeAttribute(a),
+						l.push({ index: e, name: a, pieces: n.split(pattern) }));
+			}}
+	}),
+		cache.set(t, a = { template: s, parts: [...o, ...l] }),
+		a;
+},
+mark = t => t.parentNode.insertBefore(new Comment(), t),
+slot = t => ({ end: t, start: mark(t) }),
+cut = (t, e) => {
+	const a = new Range();
+	a.setStartBefore(t), a.setEndBefore(e), a.deleteContents();
+},
+clear = t => {
+	cut(t.start.nextSibling, t.end),
+		t.strings =
+			t.update =
+			t.items =
+			t.text =
+				null;
+},
+fill = (t, e) => {
+	if (e?.strings) {
+		t.strings === e.strings
+			? t.update(e.values)
+			: (clear(t),
+				t.strings = e.strings,
+				t.update = build(t.end, e, t));
+	} else if (Array.isArray(e)) {
+		t.items || (clear(t), t.items = []),
+			e.forEach((e, a) => fill(t.items[a] ??= slot(mark(t.end)), e));
+		const a = t.items.splice(e.length);
+		a.length && cut(a[0].start, t.end);
+	} else if (null == e || "boolean" == typeof e) clear(t);
+	else {
+		const a = "" + e;
+		t.text
+			? t.text.data = a
+			: (clear(t), t.end.before(t.text = new Text(a)));
+	}
+},
+bind = (t, { name: e, pieces: a, which: n }, r) => {
+	if (!a) {
+		const e = slot(t);
+		return t => fill(e, t[n]);
+	}
+	const s = e.match(/^on:?(.+)/);
+	if (s) {
+		let e;
+		return t.addEventListener(s[1], a => {
+			const n = e?.call(t, a);
+			n?.strings && fill(r, n);
 		}),
-			cache.set(t, a = { template: s, parts: [...o, ...l] }),
-			a;
-	},
-	mark = t => t.parentNode.insertBefore(new Comment(), t),
-	slot = t => ({ end: t, start: mark(t) }),
-	cut = (t, e) => {
-		const a = new Range();
-		a.setStartBefore(t), a.setEndBefore(e), a.deleteContents();
-	},
-	clear = t => {
-		cut(t.start.nextSibling, t.end),
-			t.strings =
-				t.update =
-				t.items =
-				t.text =
-					null;
-	},
-	fill = (t, e) => {
-		if (e?.strings) {
-			t.strings === e.strings
-				? t.update(e.values)
-				: (clear(t),
-					t.strings = e.strings,
-					t.update = build(t.end, e, t));
-		} else if (Array.isArray(e)) {
-			t.items || (clear(t), t.items = []),
-				e.forEach((e, a) => fill(t.items[a] ??= slot(mark(t.end)), e));
-			const a = t.items.splice(e.length);
-			a.length && cut(a[0].start, t.end);
-		} else if (null == e || "boolean" == typeof e) clear(t);
-		else {
-			const a = "" + e;
-			t.text
-				? t.text.data = a
-				: (clear(t), t.end.before(t.text = new Text(a)));
-		}
-	},
-	bind = (t, { name: e, pieces: a, which: n }, r) => {
-		if (!a) {
-			const e = slot(t);
-			return t => fill(e, t[n]);
-		}
-		const s = e.match(/^on:?(.+)/);
-		if (s) {
-			let e;
-			return t.addEventListener(s[1], a => {
-				const n = e?.call(t, a);
-				n?.strings && fill(r, n);
-			}),
-				t => {
-					e = t[a[1]];
-				};
-		}
-		const o = 3 === a.length && !a[0] && !a[2];
-		let l;
-		return n => {
-			const r = o
-				? n[a[1]]
-				: a.map((t, e) => e % 2 ? n[t] ?? "" : t).join("");
-			if ("value" === e) {
-				const e = null == r ? "" : "" + r;
-				t.value !== e && (t.value = e);
-			} else {"checked" === e || "selected" === e
-					? t[e] = !!r
-					: r !== l && (l = r,
-						null == r || !1 === r
-							? t.removeAttribute(e)
-							: t.setAttribute(e, !0 === r ? "" : r));}
-		};
-	},
-	build = (t, e, a) => {
-		const { template: n, parts: r } = compile(e.strings, e.svg),
-			s = n.content.cloneNode(!0),
-			o = nodes(s),
-			l = r.map(t => bind(o[t.index], t, a)),
-			i = t => l.forEach(e => e(t));
-		return i(e.values), t.before(s), i;
-	},
-	make = (t, e) => {
-		let a = roots.get(t);
-		return a
-			|| (t.replaceChildren(new Comment()),
-				roots.set(t, a = slot(t.firstChild))),
-			fill(a, e),
-			t;
-	},
-	free = t => (roots.delete(t), t.replaceChildren(), t),
-	F = "DejaVu Serif, Georgia, serif",
-	TYPES = { T: "#185fa5", R: "#a32d2d", S: "#0f6e56" },
-	NEXT = { T: "R", R: "S", S: "T" },
-	COLX = [394, 474, 554],
-	MOD = /Mac|iP(hone|ad)/.test(navigator.platform) ? "⌘" : "Ctrl",
-	KEY = "schools:v1";
+			t => {
+				e = t[a[1]];
+			};
+	}
+	const o = 3 === a.length && !a[0] && !a[2];
+	let l;
+	return n => {
+		const r = o
+			? n[a[1]]
+			: a.map((t, e) => e % 2 ? n[t] ?? "" : t).join("");
+		if ("value" === e) {
+			const e = null == r ? "" : "" + r;
+			t.value !== e && (t.value = e);
+		} else {"checked" === e || "selected" === e
+				? t[e] = !!r
+				: r !== l && (l = r,
+					null == r || !1 === r
+						? t.removeAttribute(e)
+						: t.setAttribute(e, !0 === r ? "" : r));}
+	};
+},
+build = (t, e, a) => {
+	const { template: n, parts: r } = compile(e.strings, e.svg),
+		s = n.content.cloneNode(!0),
+		o = nodes(s),
+		l = r.map(t => bind(o[t.index], t, a)),
+		i = t => l.forEach(e => e(t));
+	return i(e.values), t.before(s), i;
+},
+make = (t, e) => {
+	let a = roots.get(t);
+	return a
+		|| (t.replaceChildren(new Comment()),
+			roots.set(t, a = slot(t.firstChild))),
+		fill(a, e),
+		t;
+},
+free = t => (roots.delete(t), t.replaceChildren(), t),
+F = "DejaVu Serif, Georgia, serif",
+TYPES = { T: "#185fa5", R: "#a32d2d", S: "#0f6e56" },
+NEXT = { T: "R", R: "S", S: "T" },
+COLX = [394, 474, 554],
+MOD = /Mac|iP(hone|ad)/.test(navigator.platform) ? "⌘" : "Ctrl",
+KEY = "schools:v1";
 "Ctrl" !== MOD
-	&& document.querySelectorAll("kbd").forEach(t =>
-		t.textContent = t.textContent.replaceAll("Ctrl", MOD)
-	);
+&& document.querySelectorAll("kbd").forEach(t =>
+	t.textContent = t.textContent.replaceAll("Ctrl", MOD)
+);
 const mk = (t, e, a, n, r) => ({ name: t, q: e, p: a, t: n, brk: !!r }),
-	DEF = {
-		h: ["Quality", "$$", "$$$", "$$$+"],
-		rows: [
-			mk("UW Seattle", 3, 0, "T"),
-			mk("UWaterloo", 3, 0, "R", 1),
-			mk("Georgia Tech", 3, 1, "R"),
-			mk("UI Urbana-Champaign", 3, 1, "R"),
-			mk("Maryland", 2, 1, "R"),
-			mk("Virginia Tech", 2, 1, "T"),
-			mk("UT Austin", 2, 1, "R"),
-			mk("Purdue", 2, 1, "T", 1),
-			mk("UC Berkeley", 3, 2, "R"),
-			mk("UC Los Angeles", 3, 2, "R"),
-			mk("Michigan Ann Arbor", 3, 2, "R"),
-			mk("UC San Diego", 2, 2, "R", 1),
-			mk("Texas A&M", 1, 1, "S"),
-			mk("Wisconsin-Madison", 1, 1, "T"),
-			mk("UMass Amherst", 1, 1, "T"),
-			mk("Colorado Boulder", 1, 1, "S"),
-			mk("Arizona State", 1, 1, "S"),
-		],
-	},
-	valid = t =>
-		t && Array.isArray(t.h) && 4 === t.h.length && Array.isArray(t.rows)
-		&& t.rows.length && t.rows.every(t =>
-			t && "string" == typeof t.name && t.q >= 1 && t.q <= 3 && t.p >= 0
-			&& t.p <= 2 && TYPES[t.t]
-		);
+DEF = {
+	h: ["Quality", "$$", "$$$", "$$$+"],
+	rows: [
+		mk("UW Seattle", 3, 0, "T"),
+		mk("UWaterloo", 3, 0, "R", 1),
+		mk("Georgia Tech", 3, 1, "R"),
+		mk("UI Urbana-Champaign", 3, 1, "R"),
+		mk("Maryland", 2, 1, "R"),
+		mk("Virginia Tech", 2, 1, "T"),
+		mk("UT Austin", 2, 1, "R"),
+		mk("Purdue", 2, 1, "T", 1),
+		mk("UC Berkeley", 3, 2, "R"),
+		mk("UC Los Angeles", 3, 2, "R"),
+		mk("Michigan Ann Arbor", 3, 2, "R"),
+		mk("UC San Diego", 2, 2, "R", 1),
+		mk("Texas A&M", 1, 1, "S"),
+		mk("Wisconsin-Madison", 1, 1, "T"),
+		mk("UMass Amherst", 1, 1, "T"),
+		mk("Colorado Boulder", 1, 1, "S"),
+		mk("Arizona State", 1, 1, "S"),
+	],
+},
+valid = t =>
+	t && Array.isArray(t.h) && 4 === t.h.length && Array.isArray(t.rows)
+	&& t.rows.length && t.rows.every(t =>
+		t && "string" == typeof t.name && t.q >= 1 && t.q <= 3 && t.p >= 0
+		&& t.p <= 2 && TYPES[t.t]
+	);
 let saved;
 try {
-	saved = JSON.parse(localStorage.getItem(KEY));
+saved = JSON.parse(localStorage.getItem(KEY));
 } catch {}
 const state = structuredClone(valid(saved) ? saved : DEF);
 let timer,
-	hist = [JSON.stringify(state)],
-	at = 0,
-	lastKey = null,
-	fileH = null,
-	fileName = "";
+hist = [JSON.stringify(state)],
+at = 0,
+lastKey = null,
+fileH = null,
+fileName = "";
 const store = t => {
-		try {
-			localStorage.setItem(KEY, t);
-		} catch {}
-	},
-	autosave = () => {
-		fileH && (clearTimeout(timer),
-			timer = setTimeout(async () => {
-				try {
-					const t = await fileH.createWritable();
-					await t.write(toSVG()), await t.close();
-				} catch {
-					fileH = null,
-						fileName = "",
-						render(),
-						toast("Couldn't save");
-				}
-			}, 300));
-	},
-	commit = t => {
-		const e = JSON.stringify(state);
-		e !== hist[at]
-			&& (hist.length = at + 1,
-				t && t === lastKey
-					? hist[at] = e
-					: (hist.push(e),
-						at++,
-						hist.length > 300 && (hist.shift(), at--)),
-				lastKey = t || null,
-				store(e),
-				autosave());
-	},
-	change = t => {
-		commit(t), render();
-	},
-	jump = t => {
-		const e = at + t;
-		if (e < 0 || e >= hist.length) return;
-		at = e, lastKey = null;
-		const a = JSON.parse(hist[e]);
-		state.h = a.h,
-			state.rows = a.rows,
-			store(hist[e]),
-			autosave(),
-			render();
-	};
+	try {
+		localStorage.setItem(KEY, t);
+	} catch {}
+},
+autosave = () => {
+	fileH && (clearTimeout(timer),
+		timer = setTimeout(async () => {
+			try {
+				const t = await fileH.createWritable();
+				await t.write(toSVG()), await t.close();
+			} catch {
+				fileH = null,
+					fileName = "",
+					render(),
+					toast("Couldn't save");
+			}
+		}, 300));
+},
+commit = t => {
+	const e = JSON.stringify(state);
+	e !== hist[at]
+		&& (hist.length = at + 1,
+			t && t === lastKey
+				? hist[at] = e
+				: (hist.push(e),
+					at++,
+					hist.length > 300 && (hist.shift(), at--)),
+			lastKey = t || null,
+			store(e),
+			autosave());
+},
+change = t => {
+	commit(t), render();
+},
+jump = t => {
+	const e = at + t;
+	if (e < 0 || e >= hist.length) return;
+	at = e, lastKey = null;
+	const a = JSON.parse(hist[e]);
+	state.h = a.h,
+		state.rows = a.rows,
+		store(hist[e]),
+		autosave(),
+		render();
+};
 addEventListener("focusout", () => lastKey = null);
 const lay = () => {
-		let t = 64;
-		return state.rows.map((e, a, n) => {
-			const r = { r: e, i: a, y: t };
-			return t += e.brk && a < n.length - 1 ? 48 : 24, r;
-		});
-	},
-	sq = (t, e = 0) =>
-		Array.from(
-			{ length: t - e },
-			(t, a) => `M${284 + 12 * (a + e)}-4.5h9v9h-9z`,
-		).join(""),
-	render = () => make(document.getElementById("app"), Page()),
-	add = t => {
-		const e = state.rows[t], a = mk("New school", 1, 1, "T", e.brk);
-		e.brk = !1,
-			state.rows.splice(t + 1, 0, a),
-			change(),
-			document.querySelectorAll("input.nm")[t + 1]?.select();
-	},
-	del = t => {
-		if (state.rows.length < 2) return;
-		const [e] = state.rows.splice(t, 1);
-		e.brk && state.rows[t - 1] && (state.rows[t - 1].brk = !0),
-			change();
-	},
-	drag = (t, e) => {
-		t.preventDefault();
-		const a = document.getElementById("chart");
-		let n = e;
-		const r = t => {
-				const e = a.getBoundingClientRect(),
-					r = 620 * (t.clientY - e.top) / e.width;
-				let s = 0, o = 1e9;
-				if (
-					lay().forEach((t, e) => {
-						const a = Math.abs(t.y - r);
-						a < o && (o = a, s = e);
-					}), s !== n
-				) {
-					const t = state.rows,
-						e = t.map(t => t.brk),
-						[a] = t.splice(n, 1);
-					t.splice(s, 0, a),
-						t.forEach((t, a) => t.brk = e[a]),
-						n = s,
-						render();
-				}
-			},
-			s = () => {
-				removeEventListener("pointermove", r),
-					removeEventListener("pointerup", s),
-					document.body.style.cursor = "",
-					change();
-			};
-		addEventListener("pointermove", r),
-			addEventListener("pointerup", s),
-			document.body.style.cursor = "grabbing";
-	},
-	Head = (t, e, a, n, r) =>
-		svg`<text x="${e}" y="28" text-anchor="middle" font-size="${a}" font-weight="${
-			n && "bold"
-		}" fill="${r}" font-family="${F}">${
-			state.h[t]
-		}</text><foreignObject class="ui" x="${
-			e - 45
-		}" y="14" width="90" height="20"><input class="hd" value="${
-			state.h[t]
-		}" style="${`font-size:${a}px;font-weight:${
-			n ? 700 : 400
-		}`}" oninput="${function() {
-			state.h[t] = this.value, change("h" + t);
-		}}"></foreignObject>`,
-	Row = ({ r: t, i: e, y: a }, n) =>
-		svg`<g class="row" transform="translate(0 ${a})"><path fill="#fff" d="M58-10h255v20H58z"/><text x="76" text-anchor="end" dominant-baseline="central" font-size="12" fill="#777" font-family="${F}">${
-			e + 1
-		}</text><text x="84" dominant-baseline="central" font-size="14" fill="#1a1a1a" font-family="${F}">${t.name}</text><path fill="#222" d="${
-			sq(t.q)
-		}"/>${
-			t.q < 3
-			&& svg`<path fill="#222" opacity=".15" d="${sq(3, t.q)}"/>`
-		}<circle cx="${COLX[t.p]}" r="9" fill="${TYPES[t.t]}"/><text x="${
-			COLX[t.p]
-		}" text-anchor="middle" dominant-baseline="central" font-size="11" font-weight="bold" fill="#fff" font-family="${F}">${t.t}</text><g class="ui"><path class="gh" d="M284-4.5h9v9h-9zm12 0h9v9h-9zm12 0h9v9h-9z"/>${
-			COLX.map(t => svg`<circle class="gh" cx="${t}" r="9"/>`)
-		}${
-			[0, 1, 2].map(e =>
-				svg`<rect class="hit" x="${
-					282 + 12 * e
-				}" y="-10" width="12" height="20" onclick="${() => {
-					t.q = e + 1, change();
-				}}"/>`
-			)
-		}${
-			COLX.map((e, a) =>
-				svg`<circle class="hit" cx="${e}" r="10" onclick="${() => {
-					t.p === a ? t.t = NEXT[t.t] : t.p = a, change();
-				}}"/>`
-			)
-		}<foreignObject x="82" y="-10" width="196" height="20"><input class="nm" maxlength="32" value="${t.name}" oninput="${function() {
-			t.name = this.value, change(t);
-		}}"></foreignObject><rect class="hit grab" x="46" y="-10" width="34" height="20" onpointerdown="${t =>
-			drag(t, e)}"/><g class="ctl" onclick="${() =>
-			add(
-				e,
-			)}"><title>Add row below</title><circle cx="9" r="5.5"/><text x="9">+</text></g><g class="ctl" onclick="${() =>
-			del(
-				e,
-			)}"><title>Delete row</title><circle cx="23" r="5.5"/><text x="23">×</text></g>${
-			n && svg`<g class="${t.brk ? "ctl on" : "ctl"}" onclick="${() => {
-				t.brk = !t.brk, change();
-			}}"><title>Toggle tier divider below</title><circle cx="37" r="5.5"/><text x="37">–</text></g>`
-		}</g></g>`,
-	App = () => {
-		const t = lay(),
-			e = t[t.length - 1].y,
-			a = e + 48,
-			n = t.length - 1,
-			r = "M60 40h534"
-				+ t.filter(t => t.r.brk && t.i < n).map(t =>
-					`M60 ${t.y + 24}h534`
-				).join("");
-		return svg`<svg id="chart" xmlns="http://www.w3.org/2000/svg" width="620" height="${a}" viewBox="${`0 0 620 ${a}`}"><path fill="#fff" d="${`M0 0h620v${a}H0z`}"/><path fill="#f2f2f2" d="${`M434 12h80v${
-			e + 12
-		}h-80z`}"/><path fill="#e4e4e4" d="${`M514 12h80v${
-			e + 12
-		}h-80z`}"/>${Head(0, 300, 13, 1, "#1a1a1a")}${
-			Head(1, 394, 11, 0, "#555")
-		}${Head(2, 474, 11, 0, "#555")}${
-			Head(3, 554, 11, 0, "#555")
-		}<path stroke="#8f8f8f" stroke-width=".6" d="${r}"/><path stroke="#c8c8c8" stroke-width=".6" d="${
-			t.map(t => `M110 ${t.y}h484`).join("")
-		}"/>${t.map(t => Row(t, t.i < n))}</svg>`;
-	},
-	Icon = t =>
-		svg`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="${t}"/></svg>`,
-	Page = () =>
-		html`<div class="bar"><button type="button" title="Undo (${MOD}+Z)" disabled="${
-			at < 1
-		}" onclick="${() => jump(-1)}">${
-			Icon("M9 14 4 9l5-5M4 9h10.5a5.5 5.5 0 0 1 0 11H11")
-		}</button><button type="button" title="Redo (${MOD}+Shift+Z)" disabled="${
-			at >= hist.length - 1
-		}" onclick="${() => jump(1)}">${
-			Icon("m15 14 5-5-5-5M20 9H9.5a5.5 5.5 0 0 0 0 11H13")
-		}</button><span class="sp" title="Changes are saved to this file automatically">${
-			fileName && `${fileName} · autosaving`
-		}</span><button type="button" title="Export SVG (${MOD}+E)" onclick="${() =>
-			exportSvg()}">${
-			Icon("M12 3v12m-5-5 5 5 5-5M5 21h14")
-		}</button><button type="button" title="Print (${MOD}+P)" onclick="${() =>
-			print()}">${
-			Icon(
-				"M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6z",
-			)
-		}</button></div>${App()}`,
-	toast = t => {
-		const e = document.getElementById("t");
-		e.textContent = t,
-			e.classList.add("show"),
-			clearTimeout(toast.id),
-			toast.id = setTimeout(() => e.classList.remove("show"), 2200);
-	},
-	toSVG = () => {
-		const t = document.getElementById("chart").cloneNode(!0);
-		t.querySelectorAll(".ui").forEach(t => t.remove()),
-			t.querySelectorAll("[class],[style],[id]").forEach(t => {
-				t.removeAttribute("class"),
-					t.removeAttribute("style"),
-					t.removeAttribute("id");
-			});
-		const e = document.createTreeWalker(t, 128), a = [];
-		for (; e.nextNode();) a.push(e.currentNode);
-		return a.forEach(t => t.remove()),
-			(new XMLSerializer()).serializeToString(t);
-	},
-	exportSvg = () => {
-		const t = document.createElement("a");
-		t.href = URL.createObjectURL(
-			new Blob([toSVG()], { type: "image/svg+xml" }),
-		),
-			t.download = "Schools.svg",
-			t.click(),
-			setTimeout(() => URL.revokeObjectURL(t.href), 1e3),
-			toast("Exported to SVG");
-	},
-	parse = t => {
-		const e = (new DOMParser()).parseFromString(t, "image/svg+xml")
-				.documentElement,
-			a = [...e.children],
-			n = a.filter(t =>
-				"text" === t.localName && "28" === t.getAttribute("y")
-			).map(t => t.textContent).slice(0, 4),
-			r = a.filter(t =>
-				"g" === t.localName
-				&& /translate/.test(t.getAttribute("transform") || "")
-			);
-		if ("svg" !== e.localName || n.length < 4 || !r.length) throw 0;
-		const s = r.map(t =>
-				+t.getAttribute("transform").match(
-					/translate\(\s*[-\d.]+[\s,]+([-\d.]+)/,
-				)[1]
-			),
-			o = { "#185fa5": "T", "#a32d2d": "R", "#0f6e56": "S" };
-		return {
-			h: n,
-			rows: r.map((t, e) => {
-				const a = [...t.querySelectorAll("text")],
-					n = t.querySelector("circle"),
-					r = +n.getAttribute("cx"),
-					l = [...t.querySelectorAll("path")].find(t =>
-						"#222" === t.getAttribute("fill")
-						&& !t.hasAttribute("opacity")
-					),
-					i = a[a.length - 1].textContent.trim();
-				return mk(
-					a[1].textContent,
-					Math.min(
-						3,
-						Math.max(
-							1,
-							((l?.getAttribute("d") || "").match(/z/gi) || []).length,
-						),
-					),
-					COLX.reduce(
-						(t, e, a) =>
-							Math.abs(e - r) < Math.abs(COLX[t] - r) ? a : t,
-						0,
-					),
-					TYPES[i] ? i : o[n.getAttribute("fill")] || "T",
-					s[e + 1] - s[e] > 24,
-				);
-			}),
-		};
-	},
-	openFile = async () => {
-		try {
-			let t, e = null;
-			if (window.showOpenFilePicker) {
-				if (
-					[e] = await showOpenFilePicker({
-						types: [{
-							description: "SVG graphic",
-							accept: { "image/svg+xml": [".svg"] },
-						}],
-					}),
-						"granted"
-							!== await e.requestPermission({ mode: "readwrite" })
-				) return toast("Write permission is needed to autosave");
-				t = await (await e.getFile()).text();
-			} else {
-				const e = await new Promise((t, e) => {
-					const a = document.createElement("input");
-					a.type = "file",
-						a.accept = ".svg,image/svg+xml",
-						a.onchange = () =>
-							a.files[0] ? t(a.files[0]) : e({ name: "AbortError" }),
-						a.oncancel = () => e({ name: "AbortError" }),
-						a.click();
-				});
-				t = await e.text();
+	let t = 64;
+	return state.rows.map((e, a, n) => {
+		const r = { r: e, i: a, y: t };
+		return t += e.brk && a < n.length - 1 ? 48 : 24, r;
+	});
+},
+sq = (t, e = 0) =>
+	Array.from(
+		{ length: t - e },
+		(t, a) => `M${284 + 12 * (a + e)}-4.5h9v9h-9z`,
+	).join(""),
+render = () => make(document.getElementById("app"), Page()),
+add = t => {
+	const e = state.rows[t], a = mk("New school", 1, 1, "T", e.brk);
+	e.brk = !1,
+		state.rows.splice(t + 1, 0, a),
+		change(),
+		document.querySelectorAll("input.nm")[t + 1]?.select();
+},
+del = t => {
+	if (state.rows.length < 2) return;
+	const [e] = state.rows.splice(t, 1);
+	e.brk && state.rows[t - 1] && (state.rows[t - 1].brk = !0),
+		change();
+},
+drag = (t, e) => {
+	t.preventDefault();
+	const a = document.getElementById("chart");
+	let n = e;
+	const r = t => {
+			const e = a.getBoundingClientRect(),
+				r = 620 * (t.clientY - e.top) / e.width;
+			let s = 0, o = 1e9;
+			if (
+				lay().forEach((t, e) => {
+					const a = Math.abs(t.y - r);
+					a < o && (o = a, s = e);
+				}), s !== n
+			) {
+				const t = state.rows,
+					e = t.map(t => t.brk),
+					[a] = t.splice(n, 1);
+				t.splice(s, 0, a),
+					t.forEach((t, a) => t.brk = e[a]),
+					n = s,
+					render();
 			}
-			const a = parse(t);
-			state.h = a.h,
-				state.rows = a.rows,
-				fileH = e,
-				fileName = e ? e.name : "",
-				commit(),
-				render(),
-				toast(
-					e
-						? `Editing ${e.name}; autosave is on`
-						: "Opened. Autosave isn't supported in this browser",
-				);
-		} catch (t) {
-			"AbortError" !== t?.name && toast("Couldn't open that file");
-		}
+		},
+		s = () => {
+			removeEventListener("pointermove", r),
+				removeEventListener("pointerup", s),
+				document.body.style.cursor = "",
+				change();
+		};
+	addEventListener("pointermove", r),
+		addEventListener("pointerup", s),
+		document.body.style.cursor = "grabbing";
+},
+Head = (t, e, a, n, r) =>
+	svg`<text x="${e}" y="28" text-anchor="middle" font-size="${a}" font-weight="${
+		n && "bold"
+	}" fill="${r}" font-family="${F}">${
+		state.h[t]
+	}</text><foreignObject class="ui" x="${
+		e - 45
+	}" y="14" width="90" height="20"><input class="hd" value="${
+		state.h[t]
+	}" style="${`font-size:${a}px;font-weight:${
+		n ? 700 : 400
+	}`}" oninput="${function() {
+		state.h[t] = this.value, change("h" + t);
+	}}"></foreignObject>`,
+Row = ({ r: t, i: e, y: a }, n) =>
+	svg`<g class="row" transform="translate(0 ${a})"><path fill="#fff" d="M58-10h255v20H58z"/><text x="76" text-anchor="end" dominant-baseline="central" font-size="12" fill="#777" font-family="${F}">${
+		e + 1
+	}</text><text x="84" dominant-baseline="central" font-size="14" fill="#1a1a1a" font-family="${F}">${t.name}</text><path fill="#222" d="${
+		sq(t.q)
+	}"/>${
+		t.q < 3
+		&& svg`<path fill="#222" opacity=".15" d="${sq(3, t.q)}"/>`
+	}<circle cx="${COLX[t.p]}" r="9" fill="${TYPES[t.t]}"/><text x="${
+		COLX[t.p]
+	}" text-anchor="middle" dominant-baseline="central" font-size="11" font-weight="bold" fill="#fff" font-family="${F}">${t.t}</text><g class="ui"><path class="gh" d="M284-4.5h9v9h-9zm12 0h9v9h-9zm12 0h9v9h-9z"/>${
+		COLX.map(t => svg`<circle class="gh" cx="${t}" r="9"/>`)
+	}${
+		[0, 1, 2].map(e =>
+			svg`<rect class="hit" x="${
+				282 + 12 * e
+			}" y="-10" width="12" height="20" onclick="${() => {
+				t.q = e + 1, change();
+			}}"/>`
+		)
+	}${
+		COLX.map((e, a) =>
+			svg`<circle class="hit" cx="${e}" r="10" onclick="${() => {
+				t.p === a ? t.t = NEXT[t.t] : t.p = a, change();
+			}}"/>`
+		)
+	}<foreignObject x="82" y="-10" width="196" height="20"><input class="nm" maxlength="32" value="${t.name}" oninput="${function() {
+		t.name = this.value, change(t);
+	}}"></foreignObject><rect class="hit grab" x="46" y="-10" width="34" height="20" onpointerdown="${t =>
+		drag(t, e)}"/><g class="ctl" onclick="${() =>
+		add(
+			e,
+		)}"><title>Add row below</title><circle cx="9" r="5.5"/><text x="9">+</text></g><g class="ctl" onclick="${() =>
+		del(
+			e,
+		)}"><title>Delete row</title><circle cx="23" r="5.5"/><text x="23">×</text></g>${
+		n && svg`<g class="${t.brk ? "ctl on" : "ctl"}" onclick="${() => {
+			t.brk = !t.brk, change();
+		}}"><title>Toggle tier divider below</title><circle cx="37" r="5.5"/><text x="37">–</text></g>`
+	}</g></g>`,
+App = () => {
+	const t = lay(),
+		e = t[t.length - 1].y,
+		a = e + 48,
+		n = t.length - 1,
+		r = "M60 40h534"
+			+ t.filter(t => t.r.brk && t.i < n).map(t =>
+				`M60 ${t.y + 24}h534`
+			).join("");
+	return svg`<svg id="chart" xmlns="http://www.w3.org/2000/svg" width="620" height="${a}" viewBox="${`0 0 620 ${a}`}"><path fill="#fff" d="${`M0 0h620v${a}H0z`}"/><path fill="#f2f2f2" d="${`M434 12h80v${
+		e + 12
+	}h-80z`}"/><path fill="#e4e4e4" d="${`M514 12h80v${
+		e + 12
+	}h-80z`}"/>${Head(0, 300, 13, 1, "#1a1a1a")}${
+		Head(1, 394, 11, 0, "#555")
+	}${Head(2, 474, 11, 0, "#555")}${
+		Head(3, 554, 11, 0, "#555")
+	}<path stroke="#8f8f8f" stroke-width=".6" d="${r}"/><path stroke="#c8c8c8" stroke-width=".6" d="${
+		t.map(t => `M110 ${t.y}h484`).join("")
+	}"/>${t.map(t => Row(t, t.i < n))}</svg>`;
+},
+Icon = t =>
+	svg`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="${t}"/></svg>`,
+Page = () =>
+	html`<div class="bar"><button type="button" title="Undo (${MOD}+Z)" disabled="${
+		at < 1
+	}" onclick="${() => jump(-1)}">${
+		Icon("M9 14 4 9l5-5M4 9h10.5a5.5 5.5 0 0 1 0 11H11")
+	}</button><button type="button" title="Redo (${MOD}+Shift+Z)" disabled="${
+		at >= hist.length - 1
+	}" onclick="${() => jump(1)}">${
+		Icon("m15 14 5-5-5-5M20 9H9.5a5.5 5.5 0 0 0 0 11H13")
+	}</button><span class="sp" title="Changes are saved to this file automatically">${
+		fileName && `${fileName} · autosaving`
+	}</span><button type="button" title="Export SVG (${MOD}+E)" onclick="${() =>
+		exportSvg()}">${
+		Icon("M12 3v12m-5-5 5 5 5-5M5 21h14")
+	}</button><button type="button" title="Print (${MOD}+P)" onclick="${() =>
+		print()}">${
+		Icon(
+			"M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6z",
+		)
+	}</button></div>${App()}`,
+toast = t => {
+	const e = document.getElementById("t");
+	e.textContent = t,
+		e.classList.add("show"),
+		clearTimeout(toast.id),
+		toast.id = setTimeout(() => e.classList.remove("show"), 2200);
+},
+toSVG = () => {
+	const t = document.getElementById("chart").cloneNode(!0);
+	t.querySelectorAll(".ui").forEach(t => t.remove()),
+		t.querySelectorAll("[class],[style],[id]").forEach(t => {
+			t.removeAttribute("class"),
+				t.removeAttribute("style"),
+				t.removeAttribute("id");
+		});
+	const e = document.createTreeWalker(t, 128), a = [];
+	for (; e.nextNode();) a.push(e.currentNode);
+	return a.forEach(t => t.remove()),
+		(new XMLSerializer()).serializeToString(t);
+},
+exportSvg = () => {
+	const t = document.createElement("a");
+	t.href = URL.createObjectURL(
+		new Blob([toSVG()], { type: "image/svg+xml" }),
+	),
+		t.download = "Schools.svg",
+		t.click(),
+		setTimeout(() => URL.revokeObjectURL(t.href), 1e3),
+		toast("Exported to SVG");
+},
+parse = t => {
+	const e = (new DOMParser()).parseFromString(t, "image/svg+xml")
+			.documentElement,
+		a = [...e.children],
+		n = a.filter(t =>
+			"text" === t.localName && "28" === t.getAttribute("y")
+		).map(t => t.textContent).slice(0, 4),
+		r = a.filter(t =>
+			"g" === t.localName
+			&& /translate/.test(t.getAttribute("transform") || "")
+		);
+	if ("svg" !== e.localName || n.length < 4 || !r.length) throw 0;
+	const s = r.map(t =>
+			+t.getAttribute("transform").match(
+				/translate\(\s*[-\d.]+[\s,]+([-\d.]+)/,
+			)[1]
+		),
+		o = { "#185fa5": "T", "#a32d2d": "R", "#0f6e56": "S" };
+	return {
+		h: n,
+		rows: r.map((t, e) => {
+			const a = [...t.querySelectorAll("text")],
+				n = t.querySelector("circle"),
+				r = +n.getAttribute("cx"),
+				l = [...t.querySelectorAll("path")].find(t =>
+					"#222" === t.getAttribute("fill")
+					&& !t.hasAttribute("opacity")
+				),
+				i = a[a.length - 1].textContent.trim();
+			return mk(
+				a[1].textContent,
+				Math.min(
+					3,
+					Math.max(
+						1,
+						((l?.getAttribute("d") || "").match(/z/gi) || []).length,
+					),
+				),
+				COLX.reduce(
+					(t, e, a) =>
+						Math.abs(e - r) < Math.abs(COLX[t] - r) ? a : t,
+					0,
+				),
+				TYPES[i] ? i : o[n.getAttribute("fill")] || "T",
+				s[e + 1] - s[e] > 24,
+			);
+		}),
 	};
+},
+openFile = async () => {
+	try {
+		let t, e = null;
+		if (window.showOpenFilePicker) {
+			if (
+				[e] = await showOpenFilePicker({
+					types: [{
+						description: "SVG graphic",
+						accept: { "image/svg+xml": [".svg"] },
+					}],
+				}),
+					"granted"
+						!== await e.requestPermission({ mode: "readwrite" })
+			) return toast("Write permission is needed to autosave");
+			t = await (await e.getFile()).text();
+		} else {
+			const e = await new Promise((t, e) => {
+				const a = document.createElement("input");
+				a.type = "file",
+					a.accept = ".svg,image/svg+xml",
+					a.onchange = () =>
+						a.files[0] ? t(a.files[0]) : e({ name: "AbortError" }),
+					a.oncancel = () => e({ name: "AbortError" }),
+					a.click();
+			});
+			t = await e.text();
+		}
+		const a = parse(t);
+		state.h = a.h,
+			state.rows = a.rows,
+			fileH = e,
+			fileName = e ? e.name : "",
+			commit(),
+			render(),
+			toast(
+				e
+					? `Editing ${e.name}; autosave is on`
+					: "Opened. Autosave isn't supported in this browser",
+			);
+	} catch (t) {
+		"AbortError" !== t?.name && toast("Couldn't open that file");
+	}
+};
 addEventListener("keydown", t => {
 	if (!t.ctrlKey && !t.metaKey || t.altKey) return;
 	const e = {
