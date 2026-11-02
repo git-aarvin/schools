@@ -214,7 +214,7 @@ kbd {
 			<footer>
 				<span><kbd>Ctrl+Z</kbd> Undo</span><span><kbd>Ctrl+Shift+Z</kbd> <kbd
 					>Ctrl+Y</kbd> Redo</span><span><kbd>Ctrl+O</kbd> Open</span><span><kbd
-					>Ctrl+E</kbd> Export</span><span><kbd>Ctrl+P</kbd> Print</span>
+					>Ctrl+S</kbd> Save</span><span><kbd>Ctrl+E</kbd> Export PNG</span><span><kbd>Ctrl+P</kbd> Print</span>
 			</footer>
 		</main>
 		<div id="t"></div>
@@ -585,10 +585,13 @@ Page = () =>
 		at >= hist.length - 1
 	}" onclick="${() => jump(1)}">${
 		Icon("m15 14 5-5-5-5M20 9H9.5a5.5 5.5 0 0 0 0 11H13")
-	}</button><span class="sp" title="Changes are saved to this file automatically">${
-		fileName && `${fileName} · autosaving`
-	}</span><button type="button" title="Export SVG (${MOD}+E)" onclick="${() =>
-		exportSvg()}">${
+	}</button><span class="sp" title="Use Save to choose a file; changes then autosave to it">${
+		fileName ? `${fileName` : "Not saved to a file"
+	}</span><button type="button" title="Save (${MOD}+S)" onclick="${() =>
+		saveFile()}">${
+		Icon("M4 3h13l3 3v15H4zM8 3v6h8V3M8 21v-7h8v7")
+	}</button><button type="button" title="Export PNG at 1200 DPI (${MOD}+E)" onclick="${() =>
+		exportPng()}">${
 		Icon("M12 3v12m-5-5 5 5 5-5M5 21h14")
 	}</button><button type="button" title="Print (${MOD}+P)" onclick="${() =>
 		print()}">${
@@ -616,15 +619,86 @@ toSVG = () => {
 	return a.forEach(t => t.remove()),
 		(new XMLSerializer()).serializeToString(t);
 },
-exportSvg = () => {
-	const t = document.createElement("a");
-	t.href = URL.createObjectURL(
-		new Blob([toSVG()], { type: "image/svg+xml" }),
-	),
-		t.download = "Schools.svg",
-		t.click(),
-		setTimeout(() => URL.revokeObjectURL(t.href), 1e3),
-		toast("Exported to SVG");
+downloadBlob = (t, e) => {
+	const a = document.createElement("a"), n = URL.createObjectURL(t);
+	a.href = n, a.download = e, a.click(),
+		setTimeout(() => URL.revokeObjectURL(n), 1e3);
+},
+saveFile = async () => {
+	try {
+		if (window.showSaveFilePicker) {
+			if (!fileH) fileH = await showSaveFilePicker({
+				suggestedName: fileName || "Schools.svg",
+				types: [{
+					description: "SVG graphic",
+					accept: { "image/svg+xml": [".svg"] },
+				}],
+			});
+			const t = await fileH.queryPermission?.({ mode: "readwrite" });
+			if (t !== "granted" && "granted" !== await fileH.requestPermission({ mode: "readwrite" })) {
+				fileH = null, fileName = "", render();
+				return toast("Write permission is needed to autosave");
+			}
+			const e = await fileH.createWritable();
+			await e.write(toSVG()), await e.close();
+			fileName = fileH.name || "Schools.svg", render();
+			toast(`Saved ${fileName}; autosave is on`);
+		} else {
+			downloadBlob(new Blob([toSVG()], { type: "image/svg+xml" }), "Schools.svg");
+			toast("Saved Schools.svg; this browser cannot autosave to the downloaded file");
+		}
+	} catch (t) {
+		if ("AbortError" !== t?.name) toast("Couldn't save file");
+	}
+},
+crc32 = t => {
+	let e = 0xffffffff;
+	for (const a of t) {
+		e ^= a;
+		for (let t = 0; t < 8; t++) e = e & 1 ? 0xedb88320 ^ (e >>> 1) : e >>> 1;
+	}
+	return (e ^ 0xffffffff) >>> 0;
+},
+withPngDpi = async t => {
+	const e = new Uint8Array(await t.arrayBuffer());
+	if (e.length < 33 || e[0] !== 137 || e[1] !== 80 || e[2] !== 78 || e[3] !== 71)
+		throw new Error("Invalid PNG data");
+	const a = new Uint8Array(13);
+	a.set([112, 72, 89, 115], 0);
+	const r = new Uint8Array(9), o = new DataView(r.buffer);
+	o.setUint32(0, 47244), o.setUint32(4, 47244), r[8] = 1;
+	a.set(r, 4);
+	const l = crc32(a), i = new Uint8Array(e.length + 21), c = new DataView(i.buffer);
+	i.set(e.subarray(0, 33), 0), c.setUint32(33, 9),
+	i.set([112, 72, 89, 115], 37), i.set(r, 41), c.setUint32(50, l),
+	i.set(e.subarray(33), 54);
+	return new Blob([i], { type: "image/png" });
+},
+exportPng = async () => {
+	const t = document.getElementById("chart"), e = URL.createObjectURL(
+		new Blob([toSVG()], { type: "image/svg+xml;charset=utf-8" }),
+	);
+	try {
+		const a = new Image();
+		a.src = e, await a.decode();
+		const n = 1200 / 96, r = Math.round(620 * n), o = Math.round(
+			parseFloat(t.getAttribute("height")) * n,
+		);
+		const l = document.createElement("canvas");
+		l.width = r, l.height = o;
+		const i = l.getContext("2d");
+		if (!i) throw new Error("Canvas unavailable");
+		i.fillStyle = "#fff", i.fillRect(0, 0, r, o), i.drawImage(a, 0, 0, r, o);
+		const c = await new Promise((resolve, reject) => l.toBlob(blob =>
+			blob ? resolve(blob) : reject(new Error("PNG export failed")),
+			"image/png",
+		));
+		downloadBlob(await withPngDpi(c), "Schools.png"), toast("Exported PNG at 1200 DPI");
+	} catch (t) {
+		toast("Couldn't export PNG; the image may be too large for this browser");
+	} finally {
+		URL.revokeObjectURL(e);
+	}
 },
 parse = t => {
 	const e = (new DOMParser()).parseFromString(t, "image/svg+xml")
@@ -726,7 +800,8 @@ addEventListener("keydown", t => {
 			: () => jump(-1),
 		y: () => jump(1),
 		o: openFile,
-		e: exportSvg,
+		s: saveFile,
+		e: exportPng,
 		p: () => print(),
 	}[t.key.toLowerCase()];
 	e && (t.preventDefault(), e());
