@@ -1,12 +1,12 @@
 import { vector } from "./view.js";
 import { state, types, next, columns, school, change, refresh } from "./state.js";
-import { family } from "./font.js";
+import { family, fits } from "./font.js";
+import { suggest, navigate } from "./autocomplete.js";
 import { toast } from "./notice.js";
 export const width = 620;
 export const crop = 34;
 export const bounds = width - crop;
 const margin = 36;
-const canvas = document.createElement("canvas").getContext("2d");
 const layout = () => {
 	let offset = 64;
 	return state.rows.map((entry, index, rows) => {
@@ -20,10 +20,6 @@ const squares = (count, from = 0) =>
 		{ length: count - from },
 		(item, index) => `M${284 + 12 * (index + from)}-4.5h9v9h-9z`
 	).join("");
-const fits = text => {
-	canvas.font = "14px " + family;
-	return canvas.measureText(text).width <= 190;
-};
 const press = action => event => {
 	if (event.key === "Enter" || event.key === " ") {
 		event.preventDefault();
@@ -89,6 +85,7 @@ const drag = (event, index) => {
 };
 const move = index => event => {
 	if (event.isComposing) return;
+	if (navigate(event)) return;
 	const key = event.key;
 	const step = key === "ArrowDown" ? 1 : key === "ArrowUp" ? -1 : 0;
 	if (key === "Enter") {
@@ -130,10 +127,13 @@ const Row = ({ school: entry, index, offset }, last) =>
 	if (entry.price === at) entry.type = next[entry.type];
 	else entry.price = at;
 	change();
-}}"/>`)}<foreignObject x="82" y="-10" width="196" height="20"><input class="name" maxlength="40" onkeydown="${move(index)}" value="${entry.name}" oninput="${function() {
+}}"/>`)}<foreignObject x="82" y="-10" width="196" height="20"><input class="name" maxlength="40" autocomplete="off" spellcheck="false" role="combobox" aria-autocomplete="list" aria-controls="autocomplete" aria-expanded="false" onfocus="${function() {
+	suggest(this);
+}}" onkeydown="${move(index)}" value="${entry.name}" oninput="${function() {
 	if (fits(this.value)) {
 		entry.name = this.value;
 		change(entry);
+		suggest(this);
 	} else {
 		this.value = entry.name;
 		toast("Too long");
