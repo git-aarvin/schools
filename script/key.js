@@ -1,4 +1,4 @@
-import { jump } from "./state.js";
+import { jump, preview } from "./state.js";
 import { open, save } from "./file.js";
 import { image } from "./output.js";
 export const modifier = /Mac|iP(hone|ad)/.test(navigator.platform)
@@ -16,9 +16,9 @@ export const listen = () => {
 		)
 			return;
 		const key = event.key.toLowerCase();
-		if (key === "z") jump(-1);
-		else if (key === "y") jump(1);
-		else if (key === "o") open();
+		if (key === "z" || key === "y") {
+			if (!preview) jump(key === "z" ? -1 : 1);
+		} else if (key === "o") open();
 		else if (key === "s") save();
 		else if (key === "e") image();
 		else if (key === "p") print();
