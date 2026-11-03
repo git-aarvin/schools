@@ -1,0 +1,254 @@
+@font-face {
+	font-family: Charter;
+	src: url(font/regular.woff2) format("woff2");
+	font-weight: 400;
+	font-style: normal;
+	font-display: swap;
+}
+@font-face {
+	font-family: Charter;
+	src: url(font/bold.woff2) format("woff2");
+	font-weight: 700;
+	font-style: normal;
+	font-display: swap;
+}
+@font-face {
+	font-family: Charter;
+	src: url(font/italic.woff2) format("woff2");
+	font-weight: 400;
+	font-style: italic;
+	font-display: swap;
+}
+:root {
+	--background: #ececec;
+	--foreground: #666;
+	--icon: #333;
+	color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+	:root {
+		--background: #1a1a1a;
+		--foreground: #999;
+		--icon: #ddd;
+	}
+}
+html, body {
+	margin: 0;
+	background: var(--background);
+}
+body {
+	display: grid;
+	place-items: center;
+	padding: 24px 12px;
+	font: 12px/1.5 system-ui, sans-serif;
+	color: var(--foreground);
+}
+main {
+	width: min(100%, 860px);
+	display: grid;
+	gap: 14px;
+	justify-items: center;
+}
+#host {
+	width: 100%;
+}
+#chart {
+	width: 100%;
+	height: auto;
+	display: block;
+	box-shadow: 0 2px 20px #0003;
+	user-select: none;
+}
+.toolbar {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	margin-bottom: 10px;
+	min-height: 32px;
+}
+.toolbar .status {
+	flex: 1;
+	text-align: center;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.toolbar button {
+	display: grid;
+	place-items: center;
+	width: 32px;
+	height: 32px;
+	padding: 0;
+	border: 0;
+	border-radius: 6px;
+	background: 0 0;
+	color: var(--icon);
+	cursor: pointer;
+}
+.toolbar button:hover:not(:disabled) {
+	background: #8882;
+}
+.toolbar button:focus-visible {
+	outline: 2px solid #185fa5;
+}
+.toolbar button:disabled {
+	opacity: 0.3;
+	cursor: default;
+}
+.toolbar button.muted {
+	color: #999;
+}
+footer {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	gap: 6px 28px;
+}
+kbd {
+	font: inherit;
+	border: 1px solid currentColor;
+	border-radius: 3px;
+	padding: 0 4px;
+	opacity: 0.85;
+}
+.control, .ghost {
+	transition: opacity 0.12s;
+}
+.ghost {
+	opacity: 0;
+}
+.control {
+	opacity: 0.5;
+}
+.row:focus-within .control {
+	opacity: 1;
+}
+.row:hover .control, .row:hover .ghost {
+	opacity: 1;
+}
+.control {
+	cursor: pointer;
+}
+.control circle {
+	fill: #fff;
+	stroke: #aaa;
+}
+.control text {
+	font: 11px sans-serif;
+	fill: #555;
+	text-anchor: middle;
+	dominant-baseline: central;
+	pointer-events: none;
+}
+.control:hover circle {
+	fill: #185fa5;
+	stroke: #185fa5;
+}
+.control:hover text {
+	fill: #fff;
+}
+.control.on circle {
+	stroke: #185fa5;
+}
+.ghost {
+	fill: none;
+	stroke: #999;
+	stroke-width: 0.8;
+	stroke-dasharray: 2 2;
+	pointer-events: none;
+}
+.grip {
+	fill: #aaa;
+}
+.row:hover .grip {
+	fill: #666;
+}
+.target {
+	fill: transparent;
+	cursor: pointer;
+}
+.grab {
+	cursor: grab;
+	touch-action: none;
+}
+.edit input {
+	display: block;
+	box-sizing: border-box;
+	width: 100%;
+	height: 100%;
+	margin: 0;
+	padding: 0 0 0 2px;
+	border: 0;
+	outline: 0;
+	border-radius: 2px;
+	background: 0 0;
+	color: transparent;
+	caret-color: #185fa5;
+	font: 14px/20px Charter, Georgia, serif;
+	user-select: text;
+}
+.edit input:hover {
+	background: #185fa510;
+}
+.edit input:focus {
+	background: #185fa51a;
+}
+.edit input::selection {
+	background: #185fa540;
+	color: transparent;
+}
+.edit input.middle {
+	text-align: center;
+	padding: 0;
+}
+#toast {
+	position: fixed;
+	bottom: 18px;
+	left: 50%;
+	translate: -50% 0;
+	background: #222;
+	color: #fff;
+	padding: 6px 12px;
+	border-radius: 6px;
+	opacity: 0;
+	transition: opacity 0.2s;
+	pointer-events: none;
+}
+#toast.show {
+	opacity: 1;
+}
+.target:focus, .target:focus-visible {
+	outline: none;
+}
+.edit input::placeholder {
+	color: #999;
+}
+@media (hover: none) {
+	footer {
+		display: none;
+	}
+}
+@media print {
+	@page {
+		margin: 12mm;
+	}
+	body, html {
+		background: #fff;
+	}
+	body {
+		display: block;
+		padding: 0;
+	}
+	main {
+		width: 100%;
+		display: block;
+	}
+	#toast, .toolbar, .edit, footer {
+		display: none !important;
+	}
+	#chart {
+		box-shadow: none;
+		-webkit-print-color-adjust: exact;
+		print-color-adjust: exact;
+	}
+}
