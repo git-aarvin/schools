@@ -7,6 +7,32 @@ export const width = 620;
 export const crop = 34;
 export const bounds = width - crop;
 const margin = 12;
+const palette = () =>
+	state.scheme === "dark"
+		? {
+				background: "#1a1a1a",
+				band: "#292929",
+				bandAlt: "#353535",
+				heading: "#ccc",
+				separator: "#777",
+				grid: "#555",
+				rowNumber: "#aaa",
+				text: "#f2f2f2",
+				quality: "#f2f2f2",
+				note: "#bbb",
+			}
+		: {
+				background: "#fff",
+				band: "#f2f2f2",
+				bandAlt: "#e4e4e4",
+				heading: "#555",
+				separator: "#8f8f8f",
+				grid: "#c8c8c8",
+				rowNumber: "#777",
+				text: "#1a1a1a",
+				quality: "#222",
+				note: "#666",
+			};
 const layout = () => {
 	let offset = 64;
 	return state.rows.map((entry, index, rows) => {
@@ -107,13 +133,13 @@ const move = index => event => {
 		fields[target]?.focus();
 	} else fields[index + step]?.focus();
 };
-const Header = (index, left) =>
-	vector`<text x="${left}" y="28" text-anchor="middle" font-size="11" fill="#555" font-family="${family}">${state.headings[index]}</text><foreignObject class="edit" x="${left - 45}" y="14" width="90" height="20"><input class="middle" value="${state.headings[index]}" style="font-size:11px" oninput="${function() {
+const Header = (index, left, colors) =>
+	vector`<text x="${left}" y="28" text-anchor="middle" font-size="11" fill="${colors.heading}" font-family="${family}">${state.headings[index]}</text><foreignObject class="edit" x="${left - 45}" y="14" width="90" height="20"><input class="middle" value="${state.headings[index]}" style="font-size:11px" oninput="${function() {
 	state.headings[index] = this.value;
 	change("heading" + index);
 }}"></foreignObject>`;
 const Row = ({ school: entry, index, offset }, last) =>
-	vector`<g class="row" transform="translate(0 ${offset})"><path fill="#fff" d="M58-10h255v20H58z"/><text x="76" text-anchor="end" dominant-baseline="central" font-size="12" fill="#777" font-family="${family}">${state.numbers && index + 1}</text><text x="84" dominant-baseline="central" font-size="14" fill="#1a1a1a" font-family="${family}">${entry.name}</text><path fill="#222" d="${squares(entry.quality)}"/>${entry.quality < 3 && vector`<path fill="#222" opacity=".15" d="${squares(3, entry.quality)}"/>`}<circle cx="${columns[entry.price]}" r="9" fill="${types[entry.type]}"/><text x="${columns[entry.price]}" text-anchor="middle" dominant-baseline="central" font-size="11" font-weight="bold" fill="#fff" font-family="${family}">${entry.type}</text><g class="edit"><g class="grip"><circle cx="53" cy="-3.5" r=".9"/><circle cx="56.5" cy="-3.5" r=".9"/><circle cx="53" cy="0" r=".9"/><circle cx="56.5" cy="0" r=".9"/><circle cx="53" cy="3.5" r=".9"/><circle cx="56.5" cy="3.5" r=".9"/></g><path class="ghost" d="M284-4.5h9v9h-9zm12 0h9v9h-9zm12 0h9v9h-9z"/>${columns.map(left => vector`<circle class="ghost" cx="${left}" r="9"/>`)}${[0, 1, 2].map(at => vector`<rect class="target" tabindex="0" role="button" aria-label="Quality ${at + 1}" onkeydown="${press(() => {
+	vector`<g class="row" transform="translate(0 ${offset})"><path fill="${palette().background}" d="M58-10h255v20H58z"/><text x="76" text-anchor="end" dominant-baseline="central" font-size="12" fill="${palette().rowNumber}" font-family="${family}">${state.numbers && index + 1}</text><text x="84" dominant-baseline="central" font-size="14" fill="${palette().text}" font-family="${family}">${entry.name}</text><path fill="${palette().quality}" d="${squares(entry.quality)}"/>${entry.quality < 3 && vector`<path fill="${palette().quality}" opacity=".15" d="${squares(3, entry.quality)}"/>`}<circle cx="${columns[entry.price]}" r="9" fill="${types[entry.type]}"/><text x="${columns[entry.price]}" text-anchor="middle" dominant-baseline="central" font-size="11" font-weight="bold" fill="#fff" font-family="${family}">${entry.type}</text><g class="edit"><g class="grip"><circle cx="53" cy="-3.5" r=".9"/><circle cx="56.5" cy="-3.5" r=".9"/><circle cx="53" cy="0" r=".9"/><circle cx="56.5" cy="0" r=".9"/><circle cx="53" cy="3.5" r=".9"/><circle cx="56.5" cy="3.5" r=".9"/></g><path class="ghost" d="M284-4.5h9v9h-9zm12 0h9v9h-9zm12 0h9v9h-9z"/>${columns.map(left => vector`<circle class="ghost" cx="${left}" r="9"/>`)}${[0, 1, 2].map(at => vector`<rect class="target" tabindex="0" role="button" aria-label="Quality ${at + 1}" onkeydown="${press(() => {
 	entry.quality = at + 1;
 	change();
 })}" x="${282 + 12 * at}" y="-10" width="12" height="20" onclick="${() => {
@@ -169,17 +195,18 @@ const Text = (
 	change(key);
 }}"></foreignObject>`;
 const Legend = bottom =>
-	vector`<g transform="translate(0 ${bottom + 36})" font-family="${family}" font-size="11" fill="#555">${[["S", "Safety"], ["T", "Target"], ["R", "Reach"]].map(([key, label], index) => vector`<circle cx="${67 + 60 * index}" r="7" fill="${types[key]}"/><text x="${67 + 60 * index}" text-anchor="middle" dominant-baseline="central" font-size="9" font-weight="bold" fill="#fff">${key}</text><text x="${77 + 60 * index}" dominant-baseline="central">${label}</text>`)}</g>`;
+	vector`<g transform="translate(0 ${bottom + 36})" font-family="${family}" font-size="11" fill="${palette().heading}">${[["S", "Safety"], ["T", "Target"], ["R", "Reach"]].map(([key, label], index) => vector`<circle cx="${67 + 60 * index}" r="7" fill="${types[key]}"/><text x="${67 + 60 * index}" text-anchor="middle" dominant-baseline="central" font-size="9" font-weight="bold" fill="#fff">${key}</text><text x="${77 + 60 * index}" dominant-baseline="central">${label}</text>`)}</g>`;
 export const Chart = () => {
 	const items = layout();
 	const bottom = items[items.length - 1].offset;
-	const height = bottom + 105;
+	const height = bottom + 81;
 	const last = items.length - 1;
+	const colors = palette();
 	const lines =
 		"M60 40h534" +
 		items
 			.filter(item => item.school.gap && item.index < last)
 			.map(item => `M60 ${item.offset + 24}h534`)
 			.join("");
-	return vector`<svg id="chart" xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><path fill="#fff" d="M0 0h${width}v${height}H0z"/>${Text("title", 60, margin + 28, 210, 16, 1, "Title", "#1a1a1a", 0, "start")}<g transform="translate(0 ${margin})"><path fill="#f2f2f2" d="M434 12h80v${bottom + 12}h-80z"/><path fill="#e4e4e4" d="M514 12h80v${bottom + 12}h-80z"/>${Header(0, 300)}${Header(1, 394)}${Header(2, 474)}${Header(3, 554)}<path stroke="#8f8f8f" stroke-width=".6" d="${lines}"/><path stroke="#c8c8c8" stroke-width=".6" d="${items.map(item => `M110 ${item.offset}h484`).join("")}"/>${items.map(item => Row(item, item.index < last))}${Legend(bottom)}${Text("note", 594, bottom + 40, 264, 11, 0, "Note", "#666", 1, "end")}</g></svg>`;
+	return vector`<svg id="chart" xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><path fill="${colors.background}" d="M0 0h${width}v${height}H0z"/>${Text("title", 60, margin + 28, 210, 16, 1, "Title", colors.text, 0, "start")}<g transform="translate(0 ${margin})"><path fill="${colors.band}" d="M434 12h80v${bottom + 12}h-80z"/><path fill="${colors.bandAlt}" d="M514 12h80v${bottom + 12}h-80z"/>${Header(0, 300, colors)}${Header(1, 394, colors)}${Header(2, 474, colors)}${Header(3, 554, colors)}<path stroke="${colors.separator}" stroke-width=".6" d="${lines}"/><path stroke="${colors.grid}" stroke-width=".6" d="${items.map(item => `M110 ${item.offset}h484`).join("")}"/>${items.map(item => Row(item, item.index < last))}${Legend(bottom)}${Text("note", 594, bottom + 40, 264, 11, 0, "Note", colors.note, 1, "end")}</g></svg>`;
 };
