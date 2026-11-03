@@ -5,18 +5,35 @@ let handle = null;
 export let label = "";
 let timer;
 const colors = { "#185fa5": "T", "#a32d2d": "R", "#0f6e56": "S" };
+const detectScheme = root => {
+	const fill = [...root.children]
+		.find(node => node.localName === "path" && node.getAttribute("d")?.startsWith("M0 0h"))
+		?.getAttribute("fill");
+	if (!fill) return "light";
+	const hex = fill.match(/^#([\da-f]{3}|[\da-f]{6})$/i)?.[1];
+	if (!hex) return fill.toLowerCase() === "black" ? "dark" : "light";
+	const expanded = hex.length === 3 ? [...hex].map(value => value + value).join("") : hex;
+	const channels = expanded.match(/../g).map(value => parseInt(value, 16));
+	return channels.reduce(
+		(sum, value, index) => sum + value * [0.2126, 0.7152, 0.0722][index],
+		0
+	) < 128
+		? "dark"
+		: "light";
+};
 const parse = text => {
+	const document = new DOMParser().parseFromString(text, "image/svg+xml");
+	const root = document.documentElement;
+	const detected = detectScheme(root);
 	try {
-		const metadata = new DOMParser()
-			.parseFromString(text, "image/svg+xml")
-			.getElementsByTagName("metadata")[0].textContent;
+		const metadata = root.getElementsByTagName("metadata")[0].textContent;
 		const data = JSON.parse(metadata);
-		if (valid(data)) return data;
+		if (valid(data))
+			return {
+				...data,
+				scheme: data.scheme === "dark" || data.scheme === "light" ? data.scheme : detected,
+			};
 	} catch {}
-	const root = new DOMParser().parseFromString(
-		text,
-		"image/svg+xml"
-	).documentElement;
 	const headings = [...root.querySelectorAll("text")]
 		.filter(node => node.getAttribute("y") === "28")
 		.map(node => node.textContent)
@@ -35,6 +52,7 @@ const parse = text => {
 				.match(/translate\(\s*[-\d.]+[\s,]+([-\d.]+)/)[1]
 	);
 	return {
+		scheme: detected,
 		headings,
 		rows: groups.map((node, index) => {
 			const name = node.querySelector('text[x="84"]').textContent;
@@ -52,7 +70,8 @@ const parse = text => {
 			const type = circle ? colors[circle.getAttribute("fill")] || "T" : "T";
 			const path = [...node.querySelectorAll("path")].find(
 				item =>
-					item.getAttribute("fill") === "#222" &&
+					item.getAttribute("fill") ===
+						(detected === "dark" ? "#f2f2f2" : "#222") &&
 					!item.hasAttribute("opacity")
 			);
 			const quality = Math.min(
