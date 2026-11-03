@@ -14,6 +14,7 @@ import { label, open, save } from "./file.js";
 import { image, table } from "./output.js";
 import { modifier } from "./key.js";
 import { toast } from "./notice.js";
+import { share } from "./share.js";
 const Icon = path =>
 	vector`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="${path}"/></svg>`;
 const Editor = () =>
@@ -36,7 +37,8 @@ const Editor = () =>
 		open()}">${Icon("M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6")}</button><button type="button" title="Save (${modifier}+S)" onclick="${() =>
 		save()}">${Icon("M4 3h13l3 3v15H4zM8 3v6h8V3M8 21v-7h8v7")}</button><button type="button" title="Export CSV" onclick="${() =>
 		table()}">${Icon("M3 3h18v18H3zM3 9h18M9 3v18")}</button><button type="button" title="Export PNG (${modifier}+E)" onclick="${() =>
-		image()}">${Icon("M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zM9 6.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 1 1 0-3M21 15l-4-4-9 9")}</button></div>${Chart()}`;
+		image()}">${Icon("M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zM9 6.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 1 1 0-3M21 15l-4-4-9 9")}</button><button type="button" title="Share" aria-label="Share" onclick="${() =>
+		share()}">${Icon("M18 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM6 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM18 22a3 3 0 1 0 0-6 3 3 0 0 0 0-6zM8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98")}</button></div>${Chart()}`;
 export const draw = () => {
 	const host = document.getElementById("host");
 	host.classList.toggle("preview", preview);
