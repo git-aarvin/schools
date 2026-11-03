@@ -52,6 +52,9 @@ main {
 #host {
 	width: 100%;
 }
+#host.preview .edit {
+	display: none !important;
+}
 #chart {
 	width: 100%;
 	height: auto;
