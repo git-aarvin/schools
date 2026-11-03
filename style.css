@@ -118,12 +118,12 @@ kbd {
 	opacity: 0;
 }
 .control {
-	opacity: 0.5;
-}
-.row:focus-within .control {
-	opacity: 1;
+	opacity: 0;
 }
 .row:hover .control, .row:hover .ghost {
+	opacity: 1;
+}
+.control.on {
 	opacity: 1;
 }
 .control {
