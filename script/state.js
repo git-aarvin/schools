@@ -10,7 +10,7 @@ export const school = (name, quality, price, type, gap) => ({
 	type,
 	gap: !!gap,
 });
-const base = {
+export const base = {
 	title: "Schools",
 	note: "",
 	numbers: true,
@@ -57,6 +57,14 @@ let field = null;
 const listeners = new Set();
 export const watch = listener => listeners.add(listener);
 const notify = saved => listeners.forEach(listener => listener(saved));
+export const load = data => {
+	apply(data);
+	history.length = 0;
+	history.push(JSON.stringify(state));
+	cursor = 0;
+	field = null;
+	notify(false);
+};
 export const refresh = () => notify(false);
 const commit = key => {
 	const text = JSON.stringify(state);
