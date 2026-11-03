@@ -4,6 +4,7 @@
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width,initial-scale=1">
 		<title>Schools</title>
+		<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23185fa5' d='M12 3 1 9l11 6 11-6z'/%3E%3Cpath fill='%23185fa5' d='M5 11v5.7c0 1.6 3.1 3.3 7 3.3s7-1.7 7-3.3V11l-7 4z'/%3E%3Cpath stroke='%23185fa5' stroke-width='1.6' stroke-linecap='round' d='M22 9.5v6'/%3E%3C/svg%3E">
 		<style>
 :root {
 	--bg: #ececec;
@@ -92,8 +93,16 @@ kbd {
 	opacity: 0.85;
 }
 .ctl, .gh {
-	opacity: 0;
 	transition: opacity 0.12s;
+}
+.gh {
+	opacity: 0;
+}
+.ctl {
+	opacity: 0.5;
+}
+.row:focus-within .ctl {
+	opacity: 1;
 }
 .row:hover .ctl, .row:hover .gh {
 	opacity: 1;
@@ -135,6 +144,7 @@ kbd {
 }
 .grab {
 	cursor: grab;
+	touch-action: none;
 }
 .ui input {
 	display: block;
@@ -182,6 +192,17 @@ kbd {
 #t.show {
 	opacity: 1;
 }
+.hit:focus-visible {
+	outline: 2px solid #185fa5;
+}
+.ui input::placeholder {
+	color: #999;
+}
+@media (hover: none) {
+	footer {
+		display: none;
+	}
+}
 @media print {
 	@page {
 		margin: 12mm;
@@ -214,7 +235,7 @@ kbd {
 			<footer>
 				<span><kbd>Ctrl+Z</kbd> Undo</span><span><kbd>Ctrl+Shift+Z</kbd> <kbd
 					>Ctrl+Y</kbd> Redo</span><span><kbd>Ctrl+O</kbd> Open</span><span><kbd
-					>Ctrl+S</kbd> Save</span><span><kbd>Ctrl+E</kbd> Export PNG</span><span><kbd>Ctrl+P</kbd> Print</span>
+					>Ctrl+S</kbd> Save</span><span><kbd>Ctrl+E</kbd> Export</span><span><kbd>Ctrl+P</kbd> Print</span>
 			</footer>
 		</main>
 		<div id="t"></div>
@@ -345,8 +366,12 @@ make = (t, e) => {
 free = t => (roots.delete(t), t.replaceChildren(), t),
 F = "DejaVu Serif, Georgia, serif",
 TYPES = { T: "#185fa5", R: "#a32d2d", S: "#0f6e56" },
-NEXT = { T: "R", R: "S", S: "T" },
+NEXT = { S: "T", T: "R", R: "S" },
 COLX = [394, 474, 554],
+TOP = 36,
+dpi = 1200,
+ctx = document.createElement("canvas").getContext("2d"),
+fits = s => (ctx.font = "14px " + F, ctx.measureText(s).width <= 190),
 MOD = /Mac|iP(hone|ad)/.test(navigator.platform) ? "⌘" : "Ctrl",
 KEY = "schools:v1";
 "Ctrl" !== MOD
@@ -355,24 +380,17 @@ KEY = "schools:v1";
 );
 const mk = (t, e, a, n, r) => ({ name: t, q: e, p: a, t: n, brk: !!r }),
 DEF = {
+	title: "Schools",
+	note: "",
+	nums: true,
 	h: ["Quality", "$$", "$$$", "$$$+"],
 	rows: [
 		mk("UW Seattle", 3, 0, "T"),
-		mk("UWaterloo", 3, 0, "R", 1),
 		mk("Georgia Tech", 3, 1, "R"),
-		mk("UI Urbana-Champaign", 3, 1, "R"),
-		mk("Maryland", 2, 1, "R"),
-		mk("Virginia Tech", 2, 1, "T"),
-		mk("UT Austin", 2, 1, "R"),
-		mk("Purdue", 2, 1, "T", 1),
+		mk("Virginia Tech", 2, 1, "T", 1),
 		mk("UC Berkeley", 3, 2, "R"),
-		mk("UC Los Angeles", 3, 2, "R"),
-		mk("Michigan Ann Arbor", 3, 2, "R"),
-		mk("UC San Diego", 2, 2, "R", 1),
+		mk("Michigan Ann Arbor", 3, 2, "R", 1),
 		mk("Texas A&M", 1, 1, "S"),
-		mk("Wisconsin-Madison", 1, 1, "T"),
-		mk("UMass Amherst", 1, 1, "T"),
-		mk("Colorado Boulder", 1, 1, "S"),
 		mk("Arizona State", 1, 1, "S"),
 	],
 },
@@ -386,7 +404,12 @@ let saved;
 try {
 saved = JSON.parse(localStorage.getItem(KEY));
 } catch {}
-const state = structuredClone(valid(saved) ? saved : DEF);
+const state = structuredClone(valid(saved) ? saved : DEF),
+put = a => {
+	state.h = a.h, state.rows = a.rows, state.title = a.title ?? "",
+		state.note = a.note ?? "", state.nums = a.nums !== false;
+};
+put(state);
 let timer,
 hist = [JSON.stringify(state)],
 at = 0,
@@ -408,7 +431,7 @@ autosave = () => {
 				fileH = null,
 					fileName = "",
 					render(),
-					toast("Couldn't save");
+					toast("Failed");
 			}
 		}, 300));
 },
@@ -433,8 +456,7 @@ jump = t => {
 	if (e < 0 || e >= hist.length) return;
 	at = e, lastKey = null;
 	const a = JSON.parse(hist[e]);
-	state.h = a.h,
-		state.rows = a.rows,
+	put(a),
 		store(hist[e]),
 		autosave(),
 		render();
@@ -454,7 +476,7 @@ sq = (t, e = 0) =>
 	).join(""),
 render = () => make(document.getElementById("app"), Page()),
 add = t => {
-	const e = state.rows[t], a = mk("New school", 1, 1, "T", e.brk);
+	const e = state.rows[t], a = mk("New school", e.q, e.p, e.t, e.brk);
 	e.brk = !1,
 		state.rows.splice(t + 1, 0, a),
 		change(),
@@ -472,7 +494,7 @@ drag = (t, e) => {
 	let n = e;
 	const r = t => {
 			const e = a.getBoundingClientRect(),
-				r = 620 * (t.clientY - e.top) / e.width;
+				r = 620 * (t.clientY - e.top) / e.width - TOP;
 			let s = 0, o = 1e9;
 			if (
 				lay().forEach((t, e) => {
@@ -491,12 +513,12 @@ drag = (t, e) => {
 		},
 		s = () => {
 			removeEventListener("pointermove", r),
-				removeEventListener("pointerup", s),
+				removeEventListener("pointerup", s), removeEventListener("pointercancel", s),
 				document.body.style.cursor = "",
 				change();
 		};
 	addEventListener("pointermove", r),
-		addEventListener("pointerup", s),
+		addEventListener("pointerup", s), addEventListener("pointercancel", s),
 		document.body.style.cursor = "grabbing";
 },
 Head = (t, e, a, n, r) =>
@@ -514,9 +536,7 @@ Head = (t, e, a, n, r) =>
 		state.h[t] = this.value, change("h" + t);
 	}}"></foreignObject>`,
 Row = ({ r: t, i: e, y: a }, n) =>
-	svg`<g class="row" transform="translate(0 ${a})"><path fill="#fff" d="M58-10h255v20H58z"/><text x="76" text-anchor="end" dominant-baseline="central" font-size="12" fill="#777" font-family="${F}">${
-		e + 1
-	}</text><text x="84" dominant-baseline="central" font-size="14" fill="#1a1a1a" font-family="${F}">${t.name}</text><path fill="#222" d="${
+	svg`<g class="row" transform="translate(0 ${a})"><path fill="#fff" d="M58-10h255v20H58z"/><text x="76" text-anchor="end" dominant-baseline="central" font-size="12" fill="#777" font-family="${F}">${state.nums && e + 1}</text><text x="84" dominant-baseline="central" font-size="14" fill="#1a1a1a" font-family="${F}">${t.name}</text><path fill="#222" d="${
 		sq(t.q)
 	}"/>${
 		t.q < 3
@@ -527,7 +547,7 @@ Row = ({ r: t, i: e, y: a }, n) =>
 		COLX.map(t => svg`<circle class="gh" cx="${t}" r="9"/>`)
 	}${
 		[0, 1, 2].map(e =>
-			svg`<rect class="hit" x="${
+			svg`<rect class="hit" tabindex="0" role="button" aria-label="Quality ${e + 1}" onkeydown="${act(() => { t.q = e + 1; change(); })}" x="${
 				282 + 12 * e
 			}" y="-10" width="12" height="20" onclick="${() => {
 				t.q = e + 1, change();
@@ -535,34 +555,34 @@ Row = ({ r: t, i: e, y: a }, n) =>
 		)
 	}${
 		COLX.map((e, a) =>
-			svg`<circle class="hit" cx="${e}" r="10" onclick="${() => {
+			svg`<circle class="hit" tabindex="0" role="button" aria-label="Price ${a + 1}" onkeydown="${act(() => { t.p === a ? t.t = NEXT[t.t] : t.p = a; change(); })}" cx="${e}" r="10" onclick="${() => {
 				t.p === a ? t.t = NEXT[t.t] : t.p = a, change();
 			}}"/>`
 		)
-	}<foreignObject x="82" y="-10" width="196" height="20"><input class="nm" maxlength="32" value="${t.name}" oninput="${function() {
-		t.name = this.value, change(t);
+	}<foreignObject x="82" y="-10" width="196" height="20"><input class="nm" maxlength="40" onkeydown="${nav(e)}" value="${t.name}" oninput="${function() {
+		fits(this.value) ? (t.name = this.value, change(t)) : (this.value = t.name, toast("Too long"));
 	}}"></foreignObject><rect class="hit grab" x="46" y="-10" width="34" height="20" onpointerdown="${t =>
 		drag(t, e)}"/><g class="ctl" onclick="${() =>
 		add(
 			e,
-		)}"><title>Add row below</title><circle cx="9" r="5.5"/><text x="9">+</text></g><g class="ctl" onclick="${() =>
+		)}"><title>Add</title><circle cx="9" r="5.5"/><text x="9">+</text></g><g class="ctl" onclick="${() =>
 		del(
 			e,
-		)}"><title>Delete row</title><circle cx="23" r="5.5"/><text x="23">×</text></g>${
+		)}"><title>Delete</title><circle cx="23" r="5.5"/><text x="23">×</text></g>${
 		n && svg`<g class="${t.brk ? "ctl on" : "ctl"}" onclick="${() => {
 			t.brk = !t.brk, change();
-		}}"><title>Toggle tier divider below</title><circle cx="37" r="5.5"/><text x="37">–</text></g>`
+		}}"><title>Divider</title><circle cx="37" r="5.5"/><text x="37">–</text></g>`
 	}</g></g>`,
 App = () => {
 	const t = lay(),
 		e = t[t.length - 1].y,
-		a = e + 48,
+		a = e + 56 + TOP,
 		n = t.length - 1,
 		r = "M60 40h534"
 			+ t.filter(t => t.r.brk && t.i < n).map(t =>
 				`M60 ${t.y + 24}h534`
 			).join("");
-	return svg`<svg id="chart" xmlns="http://www.w3.org/2000/svg" width="620" height="${a}" viewBox="${`0 0 620 ${a}`}"><path fill="#fff" d="${`M0 0h620v${a}H0z`}"/><path fill="#f2f2f2" d="${`M434 12h80v${
+	return svg`<svg id="chart" xmlns="http://www.w3.org/2000/svg" width="620" height="${a}" viewBox="${`0 0 620 ${a}`}"><path fill="#fff" d="${`M0 0h620v${a}H0z`}"/>${Txt("title", 310, 30, 560, 16, 1, "Title", "#1a1a1a")}<g transform="translate(0 ${TOP})"><path fill="#f2f2f2" d="${`M434 12h80v${
 		e + 12
 	}h-80z`}"/><path fill="#e4e4e4" d="${`M514 12h80v${
 		e + 12
@@ -572,8 +592,18 @@ App = () => {
 		Head(3, 554, 11, 0, "#555")
 	}<path stroke="#8f8f8f" stroke-width=".6" d="${r}"/><path stroke="#c8c8c8" stroke-width=".6" d="${
 		t.map(t => `M110 ${t.y}h484`).join("")
-	}"/>${t.map(t => Row(t, t.i < n))}</svg>`;
+	}"/>${t.map(t => Row(t, t.i < n))}${Legend(e)}${Txt("note", 462, e + 40, 264, 11, 0, "Note", "#666")}</g></svg>`;
 },
+Txt = (k, x, y, w, z, b, ph, fill) =>
+	svg`<text x="${x}" y="${y}" text-anchor="middle" font-size="${z}" font-weight="${b ? "bold" : "normal"}" fill="${fill}" font-family="${F}">${state[k]}</text><foreignObject class="ui" x="${x - w / 2}" y="${y - 14}" width="${w}" height="20"><input class="hd" maxlength="${Math.floor(w / 7)}" placeholder="${ph}" value="${state[k]}" style="${`font-size:${z}px;font-weight:${b ? 700 : 400}`}" oninput="${function() {
+		state[k] = this.value, change(k);
+	}}"></foreignObject>`,
+Legend = e =>
+	svg`<g transform="translate(0 ${e + 36})" font-family="${F}" font-size="11" fill="#555">${
+		[["S", "Safety"], ["T", "Target"], ["R", "Reach"]].map(([k, l], i) =>
+			svg`<circle cx="${92 + 76 * i}" r="7" fill="${TYPES[k]}"/><text x="${92 + 76 * i}" text-anchor="middle" dominant-baseline="central" font-size="9" font-weight="bold" fill="#fff">${k}</text><text x="${102 + 76 * i}" dominant-baseline="central">${l}</text>`
+		)
+	}</g>`,
 Icon = t =>
 	svg`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="${t}"/></svg>`,
 Page = () =>
@@ -585,12 +615,12 @@ Page = () =>
 		at >= hist.length - 1
 	}" onclick="${() => jump(1)}">${
 		Icon("m15 14 5-5-5-5M20 9H9.5a5.5 5.5 0 0 0 0 11H13")
-	}</button><span class="sp" title="Use Save to choose a file; changes then autosave to it">${
+	}</button><button type="button" title="Reset" onclick="${() => reset()}">${Icon("M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5")}</button><button type="button" title="Sort" onclick="${() => sortRows()}">${Icon("M3 6h18M6 12h12M10 18h4")}</button><button type="button" title="Numbers" onclick="${() => { state.nums = !state.nums; change(); }}">${Icon("M4 9h16M4 15h16M10 3 8 21M16 3l-2 18")}</button><span class="sp" title="File">${
 		fileName ? fileName : ""
-	}</span><button type="button" title="Save (${MOD}+S)" onclick="${() =>
+	}</span><button type="button" title="Import" onclick="${() => openCsv()}">${Icon("M12 15V3m-5 5 5-5 5 5M5 21h14")}</button><button type="button" title="CSV" onclick="${() => exportCsv()}">${Icon("M3 3h18v18H3zM3 9h18M9 3v18")}</button><button type="button" title="Save (${MOD}+S)" onclick="${() =>
 		saveFile()}">${
 		Icon("M4 3h13l3 3v15H4zM8 3v6h8V3M8 21v-7h8v7")
-	}</button><button type="button" title="Export PNG at 1200 DPI (${MOD}+E)" onclick="${() =>
+	}</button><button type="button" title="Export (${MOD}+E)" onclick="${() =>
 		exportPng()}">${
 		Icon("M12 3v12m-5-5 5 5 5-5M5 21h14")
 	}</button><button type="button" title="Print (${MOD}+P)" onclick="${() =>
@@ -617,6 +647,16 @@ toSVG = () => {
 	const e = document.createTreeWalker(t, 128), a = [];
 	for (; e.nextNode();) a.push(e.currentNode);
 	return a.forEach(t => t.remove()),
+		(() => {
+			const ns = "http://www.w3.org/2000/svg", mk2 = (n, x) => {
+				const o = document.createElementNS(ns, n);
+				return o.textContent = x, t.prepend(o);
+			};
+			t.setAttribute("role", "img");
+			mk2("metadata", JSON.stringify(state));
+			mk2("desc", state.rows.map(r => `${r.name}: quality ${r.q}, ${state.h[r.p + 1]}, ${r.t}`).join("; "));
+			mk2("title", state.title || "Schools");
+		})(),
 		(new XMLSerializer()).serializeToString(t);
 },
 downloadBlob = (t, e) => {
@@ -637,18 +677,18 @@ saveFile = async () => {
 			const t = await fileH.queryPermission?.({ mode: "readwrite" });
 			if (t !== "granted" && "granted" !== await fileH.requestPermission({ mode: "readwrite" })) {
 				fileH = null, fileName = "", render();
-				return toast("Write permission is needed to autosave");
+				return toast("Denied");
 			}
 			const e = await fileH.createWritable();
 			await e.write(toSVG()), await e.close();
 			fileName = fileH.name || "Schools.svg", render();
-			toast(`Saved ${fileName}; autosave is on`);
+			toast("Saved");
 		} else {
 			downloadBlob(new Blob([toSVG()], { type: "image/svg+xml" }), "Schools.svg");
-			toast("Saved Schools.svg; this browser cannot autosave to the downloaded file");
+			toast("Saved");
 		}
 	} catch (t) {
-		if ("AbortError" !== t?.name) toast("Couldn't save file");
+		if ("AbortError" !== t?.name) toast("Failed");
 	}
 },
 crc32 = t => {
@@ -666,7 +706,7 @@ withPngDpi = async t => {
 	const a = new Uint8Array(13);
 	a.set([112, 72, 89, 115], 0);
 	const r = new Uint8Array(9), o = new DataView(r.buffer);
-	o.setUint32(0, 47244), o.setUint32(4, 47244), r[8] = 1;
+	o.setUint32(0, Math.round(dpi / 0.0254)), o.setUint32(4, Math.round(dpi / 0.0254)), r[8] = 1;
 	a.set(r, 4);
 	const l = crc32(a), i = new Uint8Array(e.length + 21), c = new DataView(i.buffer);
 	i.set(e.subarray(0, 33), 0), c.setUint32(33, 9),
@@ -681,7 +721,7 @@ exportPng = async () => {
 	try {
 		const a = new Image();
 		a.src = e, await a.decode();
-		const n = 1200 / 96, r = Math.round(620 * n), o = Math.round(
+		const n = dpi / 96, r = Math.round(620 * n), o = Math.round(
 			parseFloat(t.getAttribute("height")) * n,
 		);
 		const l = document.createElement("canvas");
@@ -693,14 +733,20 @@ exportPng = async () => {
 			blob ? resolve(blob) : reject(new Error("PNG export failed")),
 			"image/png",
 		));
-		downloadBlob(await withPngDpi(c), "Schools.png"), toast("Exported PNG at 1200 DPI");
+		downloadBlob(await withPngDpi(c), "Schools.png"), toast("Exported");
 	} catch (t) {
-		toast("Couldn't export PNG; the image may be too large for this browser");
+		toast("Failed");
 	} finally {
 		URL.revokeObjectURL(e);
 	}
 },
 parse = t => {
+	try {
+		const d = JSON.parse(
+			new DOMParser().parseFromString(t, "image/svg+xml").getElementsByTagName("metadata")[0].textContent,
+		);
+		if (valid(d)) return d;
+	} catch {}
 	const e = (new DOMParser()).parseFromString(t, "image/svg+xml")
 			.documentElement,
 		a = [...e.children],
@@ -762,7 +808,7 @@ openFile = async () => {
 				}),
 					"granted"
 						!== await e.requestPermission({ mode: "readwrite" })
-			) return toast("Write permission is needed to autosave");
+			) return toast("Denied");
 			t = await (await e.getFile()).text();
 		} else {
 			const e = await new Promise((t, e) => {
@@ -777,20 +823,72 @@ openFile = async () => {
 			t = await e.text();
 		}
 		const a = parse(t);
-		state.h = a.h,
-			state.rows = a.rows,
+		put(a),
 			fileH = e,
 			fileName = e ? e.name : "",
 			commit(),
 			render(),
 			toast(
-				e
-					? `Editing ${e.name}; autosave is on`
-					: "Opened. Autosave isn't supported in this browser",
+				"Opened",
 			);
 	} catch (t) {
-		"AbortError" !== t?.name && toast("Couldn't open that file");
+		"AbortError" !== t?.name && toast("Failed");
 	}
+};
+const act = f => ev => {
+	(ev.key === "Enter" || ev.key === " ") && (ev.preventDefault(), f());
+},
+nav = i => ev => {
+	if (ev.isComposing) return;
+	const k = ev.key, d = k === "ArrowDown" ? 1 : k === "ArrowUp" ? -1 : 0;
+	if (k === "Enter") return ev.preventDefault(), add(i);
+	if (!d) return;
+	ev.preventDefault();
+	const L = [...document.querySelectorAll("input.nm")];
+	if (ev.altKey) {
+		const R = state.rows, j = i + d;
+		if (j < 0 || j >= R.length) return;
+		const b = R.map(x => x.brk);
+		[R[i], R[j]] = [R[j], R[i]], R.forEach((x, n) => x.brk = b[n]), change(), L[j]?.focus();
+	} else L[i + d]?.focus();
+},
+reset = () => {
+	put(structuredClone(DEF)), change(), toast("Reset");
+},
+sortRows = () => {
+	const R = state.rows;
+	R.sort((a, b) => a.p - b.p || b.q - a.q),
+		R.forEach((r, i) => r.brk = i < R.length - 1 && R[i + 1].p !== r.p),
+		change();
+},
+exportCsv = () =>
+	downloadBlob(
+		new Blob(["name,quality,price,type\n" + state.rows.map(r => [`"${r.name.replaceAll('"', '""')}"`, r.q, r.p + 1, r.t].join()).join("\n")], { type: "text/csv" }),
+		"Schools.csv",
+	),
+openCsv = () => {
+	const i = document.createElement("input");
+	i.type = "file", i.accept = ".csv,text/csv",
+		i.onchange = async () => {
+			try {
+				const rows = (await i.files[0].text()).trim().split(/\r?\n/).slice(1).map(l => {
+					const f = [];
+					l.replace(/(?:^|,)("(?:[^"]|"")*"|[^,]*)/g, (_, v) => f.push(v.replace(/^"|"$/g, "").replaceAll('""', '"')));
+					const k = (f[3] || "").trim().toUpperCase();
+					return mk(
+						f[0].slice(0, 40) || "School",
+						Math.min(3, Math.max(1, Math.round(+f[1]) || 1)),
+						Math.min(2, Math.max(0, Math.round(+f[2]) - 1 || 0)),
+						TYPES[k] ? k : "T",
+					);
+				});
+				if (!rows.length) throw 0;
+				state.rows = rows, change(), toast("Imported");
+			} catch {
+				toast("Failed");
+			}
+		},
+		i.click();
 };
 addEventListener("keydown", t => {
 	if (!t.ctrlKey && !t.metaKey || t.altKey) return;
