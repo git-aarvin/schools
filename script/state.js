@@ -12,6 +12,7 @@ const base = {
 	title: "Schools",
 	note: "",
 	numbers: true,
+	scheme: "light",
 	headings: ["Quality", "$$", "$$$", "$$$+"],
 	rows: [
 		school("UW Seattle", 3, 0, "T"),
@@ -46,6 +47,7 @@ export const apply = data => {
 	state.title = data.title ?? "";
 	state.note = data.note ?? "";
 	state.numbers = data.numbers !== false;
+	state.scheme = data.scheme === "dark" ? "dark" : "light";
 };
 export const history = [JSON.stringify(state)];
 export let cursor = 0;
