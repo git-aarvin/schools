@@ -1,4 +1,6 @@
 export const types = { T: "#185fa5", R: "#a32d2d", S: "#0f6e56" };
+export let preview = false;
+export const togglePreview = () => (preview = !preview);
 export const next = { S: "T", T: "R", R: "S" };
 export const columns = [394, 474, 554];
 export const school = (name, quality, price, type, gap) => ({
