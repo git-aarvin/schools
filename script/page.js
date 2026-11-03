@@ -16,7 +16,10 @@ const Editor = () =>
 	}}">${Icon("M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5")}</button><button type="button" class="${state.numbers ? "" : "muted"}" title="Numbers" onclick="${() => {
 		state.numbers = !state.numbers;
 		change();
-	}}">${Icon("M4 9h16M4 15h16M10 3 8 21M16 3l-2 18")}</button><span class="status" title="File">${label || ""}</span><button type="button" title="Open (${modifier}+O)" onclick="${() =>
+	}}">${Icon("M4 9h16M4 15h16M10 3 8 21M16 3l-2 18")}</button><button type="button" title="Switch to ${state.scheme === "dark" ? "light" : "dark"} color scheme" aria-label="Switch to ${state.scheme === "dark" ? "light" : "dark"} color scheme" onclick="${() => {
+		state.scheme = state.scheme === "dark" ? "light" : "dark";
+		change();
+	}}">${Icon(state.scheme === "dark" ? "M12 3v2m0 14v2m9-9h-2M5 12H3m15.36-6.36-1.42 1.42M7.06 16.94l-1.42 1.42m12.72 0-1.42-1.42M7.06 7.06 5.64 5.64M16 12a4 4 0 1 1-8 0 4 4 0 0 1 8 0z" : "M20.9 13.1A8.5 8.5 0 0 1 10.9 3.1 8.5 8.5 0 1 0 20.9 13.1z")}</button><span class="status" title="File">${label || ""}</span><button type="button" title="Open (${modifier}+O)" onclick="${() =>
 		open()}">${Icon("M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6")}</button><button type="button" title="Save (${modifier}+S)" onclick="${() =>
 		save()}">${Icon("M4 3h13l3 3v15H4zM8 3v6h8V3M8 21v-7h8v7")}</button><button type="button" title="Export CSV" onclick="${() =>
 		table()}">${Icon("M3 3h18v18H3zM3 9h18M9 3v18")}</button><button type="button" title="Export PNG (${modifier}+E)" onclick="${() =>
