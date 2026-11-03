@@ -114,7 +114,7 @@ export const image = async () => {
 		canvas.height = Math.round(height * scale);
 		const context = canvas.getContext("2d");
 		if (!context) throw new Error("Canvas unavailable");
-		context.fillStyle = "#fff";
+		context.fillStyle = state.scheme === "dark" ? "#1a1a1a" : "#fff";
 		context.fillRect(0, 0, canvas.width, canvas.height);
 		context.drawImage(svg, 0, 0, canvas.width, canvas.height);
 		const blob = await new Promise((resolve, reject) =>
