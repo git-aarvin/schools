@@ -1,4 +1,9 @@
 export const family = "Charter, Georgia, serif";
+const canvas = document.createElement("canvas").getContext("2d");
+export const fits = text => {
+	canvas.font = "14px " + family;
+	return canvas.measureText(text).width <= 190;
+};
 const files = [
 	["regular", 400, "normal"],
 	["bold", 700, "normal"],
