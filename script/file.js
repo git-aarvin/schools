@@ -3,6 +3,10 @@ import { serialize, download } from "./output.js";
 import { toast } from "./notice.js";
 let handle = null;
 export let label = "";
+export const detach = () => {
+	handle = null;
+	label = "";
+};
 let timer;
 const colors = { "#185fa5": "T", "#a32d2d": "R", "#0f6e56": "S" };
 const detectScheme = root => {
