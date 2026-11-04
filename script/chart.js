@@ -61,7 +61,7 @@ const press = action => event => {
 };
 const add = index => {
 	if (state.rows.length >= limit) {
-		toast("Too many");
+		toast("Maximum");
 		return;
 	}
 	const entry = state.rows[index];
@@ -176,7 +176,7 @@ const Row = ({ school: entry, index, offset }, last, colors) =>
 		suggest(this);
 	} else {
 		this.value = entry.name;
-		toast("Too long");
+		toast("Overflow");
 	}
 }}"></foreignObject><rect class="target grab" x="46" y="-10" width="34" height="20" onpointerdown="${event =>
 	drag(event, index)}"/><g class="control" tabindex="0" role="button" aria-label="Add school after ${who(entry)}" onkeydown="${press(() => add(index))}" onclick="${() =>
@@ -206,14 +206,14 @@ const Text = (
 	this.value = strip(this.value);
 	if (!fits(this.value, font, width - 4)) {
 		this.value = state[key];
-		toast("Too long");
+		toast("Overflow");
 		return;
 	}
 	state[key] = this.value;
 	change(key);
 }}"></foreignObject>`;
 const Legend = bottom =>
-	vector`<g transform="translate(0 ${bottom + 36})" font-family="${family}" font-size="11" fill="${palette().heading}">${[["S", "Safety"], [state.match ? "M" : "T", targetLabel()], ["R", "Reach"]].map(([key, label], index) => index === 1 ? vector`<g class="target" role="button" tabindex="0" aria-label="${label} category name. Activate to switch to ${state.match ? "Target" : "Match"}." aria-pressed="${String(!!state.match)}" onkeydown="${press(toggleMatch)}" onclick="${toggleMatch}"><circle cx="${67 + 60 * index}" r="7" fill="${types.T}"/><text x="${67 + 60 * index}" text-anchor="middle" dy=".35em" font-size="9" font-weight="bold" fill="#fff">${key}</text><text x="${77 + 60 * index}" dy=".35em" fill="${palette().heading}">${label}</text></g>` : vector`<circle cx="${67 + 60 * index}" r="7" fill="${types[key]}"/><text x="${67 + 60 * index}" text-anchor="middle" dy=".35em" font-size="9" font-weight="bold" fill="#fff">${key}</text><text x="${77 + 60 * index}" dy=".35em">${label}</text>`)}</g>`;
+	vector`<g transform="translate(0 ${bottom + 36})" font-family="${family}" font-size="11" fill="${palette().heading}">${[["S", "Safety"], [state.match ? "M" : "T", targetLabel()], ["R", "Reach"]].map(([key, label], index) => index === 1 ? vector`<g class="target" role="button" tabindex="0" aria-label="${label}" aria-pressed="${String(!!state.match)}" onkeydown="${press(toggleMatch)}" onclick="${toggleMatch}"><circle cx="${67 + 60 * index}" r="7" fill="${types.T}"/><text x="${67 + 60 * index}" text-anchor="middle" dy=".35em" font-size="9" font-weight="bold" fill="#fff">${key}</text><text x="${77 + 60 * index}" dy=".35em" fill="${palette().heading}">${label}</text></g>` : vector`<circle cx="${67 + 60 * index}" r="7" fill="${types[key]}"/><text x="${67 + 60 * index}" text-anchor="middle" dy=".35em" font-size="9" font-weight="bold" fill="#fff">${key}</text><text x="${77 + 60 * index}" dy=".35em">${label}</text>`)}</g>`;
 export const Chart = () => {
 	const items = layout();
 	const bottom = items[items.length - 1].offset;
@@ -226,5 +226,5 @@ export const Chart = () => {
 			.filter(item => item.school.gap && item.index < last)
 			.map(item => `M60 ${item.offset + 24}h534`)
 			.join("");
-	return vector`<svg id="chart" class="${state.scheme === "dark" ? "dark" : "light"}" role="group" aria-label="College list chart" xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><path fill="${colors.background}" d="M0 0h${width}v${height}H0z"/>${Text("title", 60, margin + 28, 210, 16, 1, "Title", colors.text, 0, "start")}<g transform="translate(0 ${margin})"><path fill="${colors.band}" d="M434 12h80v${bottom + 12}h-80z"/><path fill="${colors.stripe}" d="M514 12h80v${bottom + 12}h-80z"/>${Header(0, 300, colors)}${Header(1, 394, colors)}${Header(2, 474, colors)}${Header(3, 554, colors)}<path stroke="${colors.separator}" stroke-width=".6" d="${lines}"/><path stroke="${colors.grid}" stroke-width=".6" d="${items.map(item => `M110 ${item.offset}h484`).join("")}"/>${items.map(item => Row(item, item.index < last, colors))}${Legend(bottom)}${Text("note", 594, bottom + 40, 264, 11, 0, "Note", colors.note, 1, "end")}</g></svg>`;
+	return vector`<svg id="chart" class="${state.scheme === "dark" ? "dark" : "light"}" role="group" aria-label="Chart" xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><path fill="${colors.background}" d="M0 0h${width}v${height}H0z"/>${Text("title", 60, margin + 28, 210, 16, 1, "Title", colors.text, 0, "start")}<g transform="translate(0 ${margin})"><path fill="${colors.band}" d="M434 12h80v${bottom + 12}h-80z"/><path fill="${colors.stripe}" d="M514 12h80v${bottom + 12}h-80z"/>${Header(0, 300, colors)}${Header(1, 394, colors)}${Header(2, 474, colors)}${Header(3, 554, colors)}<path stroke="${colors.separator}" stroke-width=".6" d="${lines}"/><path stroke="${colors.grid}" stroke-width=".6" d="${items.map(item => `M110 ${item.offset}h484`).join("")}"/>${items.map(item => Row(item, item.index < last, colors))}${Legend(bottom)}${Text("note", 594, bottom + 40, 264, 11, 0, "Note", colors.note, 1, "end")}</g></svg>`;
 };
