@@ -1,5 +1,5 @@
 import { markup, mount } from "./view.js";
-import { state, history, cursor, reset, change, jump } from "./state.js";
+import { state, stack, cursor, reset, change, jump } from "./state.js";
 import { Chart } from "./chart.js";
 import { label, open, save } from "./file.js";
 import { image, table } from "./output.js";
@@ -9,10 +9,10 @@ import { share } from "./share.js";
 import { Icon } from "./icons.js";
 const Editor = () =>
 	markup`<div class="toolbar" role="toolbar" aria-label="Chart tools"><button type="button" title="Undo (${modifier}+Z)" aria-label="Undo" disabled="${cursor < 1}" onclick="${() =>
-		jump(-1)}">${Icon("undo")}</button><button type="button" title="Redo (${modifier}+Y)" aria-label="Redo" disabled="${cursor >= history.length - 1}" onclick="${() =>
+		jump(-1)}">${Icon("undo")}</button><button type="button" title="Redo (${modifier}+Y)" aria-label="Redo" disabled="${cursor >= stack.length - 1}" onclick="${() =>
 		jump(1)}">${Icon("redo")}</button><button type="button" title="Clear" aria-label="Clear" onclick="${() => {
 		reset();
-		toast("Cleared");
+		toast("Cleared (Ctrl+Z to undo)");
 	}}">${Icon("clear")}</button><button type="button" class="${state.numbers ? "" : "muted"}" title="Numbers" aria-label="Numbers" aria-pressed="${String(!!state.numbers)}" onclick="${() => {
 		state.numbers = !state.numbers;
 		change();
