@@ -145,7 +145,7 @@ export const share = async () => {
 			history.replaceState(null, "", url);
 		} catch {}
 		await copy(url.href);
-		toast("Link copied");
+		toast("Copied");
 	} catch {
 		toast("Failed");
 	}
@@ -154,7 +154,7 @@ export const restore = async () => {
 	const hash = location.hash.slice(1);
 	if (!hash.startsWith(prefix)) return;
 	if (hash.length > bound) {
-		toast("Link too long");
+		toast("Overlong");
 		return;
 	}
 	try {
@@ -171,10 +171,10 @@ export const restore = async () => {
 			raw = await inflate(bytes);
 		} else return;
 		const data = expand(JSON.parse(new TextDecoder().decode(raw)));
-		if (dirty && !confirm("Replace the current chart?")) return;
+		if (dirty && !confirm("Replace?")) return;
 		detach();
 		load(data);
 	} catch {
-		toast("Bad link");
+		toast("Invalid");
 	}
 };
