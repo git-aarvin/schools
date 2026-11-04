@@ -1,5 +1,5 @@
 import { vector } from "./view.js";
-import { state, types, next, columns, school, change, refresh } from "./state.js";
+import { state, types, next, columns, school, change, refresh, limit } from "./state.js";
 import { family, fits } from "./font.js";
 import { suggest, navigate } from "./autocomplete.js";
 import { toast } from "./notice.js";
@@ -7,16 +7,18 @@ export const width = 620;
 export const crop = 34;
 export const bounds = width - crop;
 const margin = 12;
+const kinds = { T: "Target", R: "Reach", S: "Safety" };
+const who = entry => entry.name || "school";
 const palette = () =>
 	state.scheme === "dark"
 		? {
 				background: "#1a1a1a",
 				band: "#292929",
-				bandAlt: "#353535",
+				stripe: "#353535",
 				heading: "#ccc",
 				separator: "#777",
 				grid: "#555",
-				rowNumber: "#aaa",
+				number: "#aaa",
 				text: "#f2f2f2",
 				quality: "#f2f2f2",
 				note: "#bbb",
@@ -24,11 +26,11 @@ const palette = () =>
 		: {
 				background: "#fff",
 				band: "#f2f2f2",
-				bandAlt: "#e4e4e4",
+				stripe: "#e4e4e4",
 				heading: "#555",
 				separator: "#8f8f8f",
 				grid: "#c8c8c8",
-				rowNumber: "#777",
+				number: "#777",
 				text: "#1a1a1a",
 				quality: "#222",
 				note: "#666",
@@ -53,6 +55,10 @@ const press = action => event => {
 	}
 };
 const add = index => {
+	if (state.rows.length >= limit) {
+		toast("Too many");
+		return;
+	}
 	const entry = state.rows[index];
 	const item = school(
 		"New school",
@@ -73,6 +79,7 @@ const remove = index => {
 	change();
 };
 const drag = (event, index) => {
+	if (event.pointerType === "mouse" && event.button !== 0) return;
 	event.preventDefault();
 	const chart = document.getElementById("chart");
 	let from = index;
@@ -104,7 +111,7 @@ const drag = (event, index) => {
 		document.body.style.cursor = "";
 		change();
 	};
-	addEventListener("pointermove", track);
+	addEventListener("pointermove", track, { passive: true });
 	addEventListener("pointerup", stop);
 	addEventListener("pointercancel", stop);
 	document.body.style.cursor = "grabbing";
@@ -134,18 +141,18 @@ const move = index => event => {
 	} else fields[index + step]?.focus();
 };
 const Header = (index, left, colors) =>
-	vector`<text x="${left}" y="28" text-anchor="middle" font-size="11" fill="${colors.heading}" font-family="${family}">${state.headings[index]}</text><foreignObject class="edit" x="${left - 45}" y="14" width="90" height="20"><input class="middle" value="${state.headings[index]}" style="font-size:11px" oninput="${function() {
+	vector`<text x="${left}" y="28" text-anchor="middle" font-size="11" fill="${colors.heading}" font-family="${family}">${state.headings[index]}</text><foreignObject class="edit" x="${left - 45}" y="14" width="90" height="20"><input class="middle" aria-label="Column heading ${index + 1}" maxlength="14" value="${state.headings[index]}" style="font-size:11px" oninput="${function() {
 	state.headings[index] = this.value;
 	change("heading" + index);
 }}"></foreignObject>`;
-const Row = ({ school: entry, index, offset }, last) =>
-	vector`<g class="row" transform="translate(0 ${offset})"><path fill="${palette().background}" d="M58-10h255v20H58z"/><text x="76" text-anchor="end" dominant-baseline="central" font-size="12" fill="${palette().rowNumber}" font-family="${family}">${state.numbers && index + 1}</text><text x="84" dominant-baseline="central" font-size="14" fill="${palette().text}" font-family="${family}">${entry.name}</text><path fill="${palette().quality}" d="${squares(entry.quality)}"/>${entry.quality < 3 && vector`<path fill="${palette().quality}" opacity=".15" d="${squares(3, entry.quality)}"/>`}<circle cx="${columns[entry.price]}" r="9" fill="${types[entry.type]}"/><text x="${columns[entry.price]}" text-anchor="middle" dominant-baseline="central" font-size="11" font-weight="bold" fill="#fff" font-family="${family}">${entry.type}</text><g class="edit"><g class="grip"><circle cx="53" cy="-3.5" r=".9"/><circle cx="56.5" cy="-3.5" r=".9"/><circle cx="53" cy="0" r=".9"/><circle cx="56.5" cy="0" r=".9"/><circle cx="53" cy="3.5" r=".9"/><circle cx="56.5" cy="3.5" r=".9"/></g><path class="ghost" d="M284-4.5h9v9h-9zm12 0h9v9h-9zm12 0h9v9h-9z"/>${columns.map(left => vector`<circle class="ghost" cx="${left}" r="9"/>`)}${[0, 1, 2].map(at => vector`<rect class="target" tabindex="0" role="button" aria-label="Quality ${at + 1}" onkeydown="${press(() => {
+const Row = ({ school: entry, index, offset }, last, colors) =>
+	vector`<g class="row" transform="translate(0 ${offset})"><path fill="${colors.background}" d="M58-10h255v20H58z"/><text x="76" text-anchor="end" dominant-baseline="central" font-size="12" fill="${colors.number}" font-family="${family}">${state.numbers && index + 1}</text><text x="84" dominant-baseline="central" font-size="14" fill="${colors.text}" font-family="${family}">${entry.name}</text><path fill="${colors.quality}" d="${squares(entry.quality)}"/>${entry.quality < 3 && vector`<path fill="${colors.quality}" opacity=".15" d="${squares(3, entry.quality)}"/>`}<circle cx="${columns[entry.price]}" r="9" fill="${types[entry.type]}"/><text x="${columns[entry.price]}" text-anchor="middle" dominant-baseline="central" font-size="11" font-weight="bold" fill="#fff" font-family="${family}">${entry.type}</text><g class="edit"><g class="grip"><circle cx="53" cy="-3.5" r=".9"/><circle cx="56.5" cy="-3.5" r=".9"/><circle cx="53" cy="0" r=".9"/><circle cx="56.5" cy="0" r=".9"/><circle cx="53" cy="3.5" r=".9"/><circle cx="56.5" cy="3.5" r=".9"/></g><path class="ghost" d="M284-4.5h9v9h-9zm12 0h9v9h-9zm12 0h9v9h-9z"/>${columns.map(left => vector`<circle class="ghost" cx="${left}" r="9"/>`)}${[0, 1, 2].map(at => vector`<rect class="target" tabindex="0" role="button" aria-label="Quality ${at + 1} of 3 for ${who(entry)}" aria-pressed="${String(at < entry.quality)}" onkeydown="${press(() => {
 	entry.quality = at + 1;
 	change();
 })}" x="${282 + 12 * at}" y="-10" width="12" height="20" onclick="${() => {
 	entry.quality = at + 1;
 	change();
-}}"/>`)}${columns.map((left, at) => vector`<circle class="target" tabindex="0" role="button" aria-label="Price ${at + 1}" onkeydown="${press(() => {
+}}"/>`)}${columns.map((left, at) => vector`<circle class="target" tabindex="0" role="button" aria-label="${(state.headings[at + 1] || "Price " + (at + 1)) + " for " + who(entry) + (entry.price === at ? ", " + kinds[entry.type] + ", activate to change type" : "")}" aria-pressed="${String(entry.price === at)}" onkeydown="${press(() => {
 	if (entry.price === at) entry.type = next[entry.type];
 	else entry.price = at;
 	change();
@@ -153,7 +160,7 @@ const Row = ({ school: entry, index, offset }, last) =>
 	if (entry.price === at) entry.type = next[entry.type];
 	else entry.price = at;
 	change();
-}}"/>`)}<foreignObject x="82" y="-10" width="196" height="20"><input class="name" maxlength="40" autocomplete="off" spellcheck="false" role="combobox" aria-autocomplete="list" aria-controls="autocomplete" aria-expanded="false" onfocus="${function() {
+}}"/>`)}<foreignObject x="82" y="-10" width="196" height="20"><input class="name" maxlength="40" autocomplete="off" spellcheck="false" role="combobox" aria-autocomplete="list" aria-controls="autocomplete" aria-expanded="false" aria-label="School name, row ${index + 1}" aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown" onfocus="${function() {
 	suggest(this);
 }}" onkeydown="${move(index)}" value="${entry.name}" oninput="${function() {
 	if (fits(this.value)) {
@@ -165,9 +172,12 @@ const Row = ({ school: entry, index, offset }, last) =>
 		toast("Too long");
 	}
 }}"></foreignObject><rect class="target grab" x="46" y="-10" width="34" height="20" onpointerdown="${event =>
-	drag(event, index)}"/><g class="control" onclick="${() =>
-	add(index)}"><title>Add</title><circle cx="9" r="5.5"/><text x="9">+</text></g><g class="control" onclick="${() =>
-	remove(index)}"><title>Delete</title><circle cx="23" r="5.5"/><text x="23">×</text></g>${last && vector`<g class="${entry.gap ? "control on" : "control"}" onclick="${() => {
+	drag(event, index)}"/><g class="control" tabindex="0" role="button" aria-label="Add school after ${who(entry)}" onkeydown="${press(() => add(index))}" onclick="${() =>
+	add(index)}"><title>Add</title><circle cx="9" r="5.5"/><text x="9">+</text></g><g class="control" tabindex="0" role="button" aria-label="Delete ${who(entry)}" aria-disabled="${state.rows.length < 2 ? "true" : null}" onkeydown="${press(() => remove(index))}" onclick="${() =>
+	remove(index)}"><title>Delete</title><circle cx="23" r="5.5"/><text x="23">×</text></g>${last && vector`<g class="${entry.gap ? "control on" : "control"}" tabindex="0" role="button" aria-label="Divider after ${who(entry)}" aria-pressed="${String(!!entry.gap)}" onkeydown="${press(() => {
+	entry.gap = !entry.gap;
+	change();
+})}" onclick="${() => {
 	entry.gap = !entry.gap;
 	change();
 }}"><title>Divider</title><circle cx="37" r="5.5"/><text x="37">–</text></g>`}</g></g>`;
@@ -185,7 +195,7 @@ const Text = (
 	italic,
 	align = "middle"
 ) =>
-	vector`<text x="${left}" y="${top}" text-anchor="${align}" font-size="${size}" font-weight="${bold ? "bold" : "normal"}" font-style="${italic ? "italic" : "normal"}" fill="${color}" font-family="${family}">${state[key]}</text><foreignObject class="edit" x="${left - width * offsets[align]}" y="${top - 14}" width="${width}" height="20"><input class="middle" maxlength="${Math.floor(width / 7)}" placeholder="${placeholder}" value="${state[key]}" style="${`font-size:${size}px;font-weight:${bold ? 700 : 400};font-style:${italic ? "italic" : "normal"};text-align:${aligns[align]}`}" oninput="${function() {
+	vector`<text x="${left}" y="${top}" text-anchor="${align}" font-size="${size}" font-weight="${bold ? "bold" : "normal"}" font-style="${italic ? "italic" : "normal"}" fill="${color}" font-family="${family}">${state[key]}</text><foreignObject class="edit" x="${left - width * offsets[align]}" y="${top - 14}" width="${width}" height="20"><input class="middle" aria-label="${placeholder}" maxlength="${Math.floor(width / 7)}" placeholder="${placeholder}" value="${state[key]}" style="${`font-size:${size}px;font-weight:${bold ? 700 : 400};font-style:${italic ? "italic" : "normal"};text-align:${aligns[align]}`}" oninput="${function() {
 	if (!fits(this.value, `${bold ? "bold " : ""}${size}px`, width - 4)) {
 		this.value = state[key];
 		toast("Too long");
@@ -208,5 +218,5 @@ export const Chart = () => {
 			.filter(item => item.school.gap && item.index < last)
 			.map(item => `M60 ${item.offset + 24}h534`)
 			.join("");
-	return vector`<svg id="chart" xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><path fill="${colors.background}" d="M0 0h${width}v${height}H0z"/>${Text("title", 60, margin + 28, 210, 16, 1, "Title", colors.text, 0, "start")}<g transform="translate(0 ${margin})"><path fill="${colors.band}" d="M434 12h80v${bottom + 12}h-80z"/><path fill="${colors.bandAlt}" d="M514 12h80v${bottom + 12}h-80z"/>${Header(0, 300, colors)}${Header(1, 394, colors)}${Header(2, 474, colors)}${Header(3, 554, colors)}<path stroke="${colors.separator}" stroke-width=".6" d="${lines}"/><path stroke="${colors.grid}" stroke-width=".6" d="${items.map(item => `M110 ${item.offset}h484`).join("")}"/>${items.map(item => Row(item, item.index < last))}${Legend(bottom)}${Text("note", 594, bottom + 40, 264, 11, 0, "Note", colors.note, 1, "end")}</g></svg>`;
+	return vector`<svg id="chart" class="${state.scheme === "dark" ? "dark" : "light"}" role="group" aria-label="College list chart" xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><path fill="${colors.background}" d="M0 0h${width}v${height}H0z"/>${Text("title", 60, margin + 28, 210, 16, 1, "Title", colors.text, 0, "start")}<g transform="translate(0 ${margin})"><path fill="${colors.band}" d="M434 12h80v${bottom + 12}h-80z"/><path fill="${colors.stripe}" d="M514 12h80v${bottom + 12}h-80z"/>${Header(0, 300, colors)}${Header(1, 394, colors)}${Header(2, 474, colors)}${Header(3, 554, colors)}<path stroke="${colors.separator}" stroke-width=".6" d="${lines}"/><path stroke="${colors.grid}" stroke-width=".6" d="${items.map(item => `M110 ${item.offset}h484`).join("")}"/>${items.map(item => Row(item, item.index < last, colors))}${Legend(bottom)}${Text("note", 594, bottom + 40, 264, 11, 0, "Note", colors.note, 1, "end")}</g></svg>`;
 };
