@@ -2,7 +2,7 @@ import { state } from "./state.js";
 import { crop, bounds } from "./chart.js";
 import { embed } from "./font.js";
 import { toast } from "./notice.js";
-const resolution = 1200;
+const resolution = 300;
 export const download = (blob, name) => {
 	const link = document.createElement("a");
 	const url = URL.createObjectURL(blob);
@@ -38,6 +38,11 @@ export const serialize = async () => {
 		node.textContent = text;
 		chart.prepend(node);
 	};
+	chart.querySelectorAll("[tabindex]").forEach(node =>
+		["tabindex", "role", "aria-pressed", "aria-label"].forEach(attribute =>
+			node.removeAttribute(attribute)
+		)
+	);
 	chart.setAttribute("role", "img");
 	prepend("metadata", JSON.stringify(state));
 	prepend(
@@ -69,7 +74,7 @@ const checksum = bytes => {
 	}
 	return (value ^ 0xffffffff) >>> 0;
 };
-const adjust = async blob => {
+const adjust = async (blob, dpi) => {
 	const bytes = new Uint8Array(await blob.arrayBuffer());
 	if (
 		bytes.length < 33 ||
@@ -83,8 +88,8 @@ const adjust = async blob => {
 	chunk.set([112, 72, 89, 115], 0);
 	const data = new Uint8Array(9);
 	const reader = new DataView(data.buffer);
-	reader.setUint32(0, Math.round(resolution / 0.0254));
-	reader.setUint32(4, Math.round(resolution / 0.0254));
+	reader.setUint32(0, Math.round(dpi / 0.0254));
+	reader.setUint32(4, Math.round(dpi / 0.0254));
 	data[8] = 1;
 	chunk.set(data, 4);
 	const sum = checksum(chunk);
@@ -112,7 +117,11 @@ export const image = async () => {
 		const svg = new Image();
 		svg.src = source;
 		await svg.decode();
-		const scale = resolution / 96;
+		const scale = Math.min(
+			resolution / 96,
+			Math.sqrt(16_000_000 / (bounds * height)),
+			16000 / height
+		);
 		const canvas = document.createElement("canvas");
 		canvas.width = Math.round(bounds * scale);
 		canvas.height = Math.round(height * scale);
@@ -130,7 +139,7 @@ export const image = async () => {
 				"image/png"
 			)
 		);
-		download(await adjust(blob), "Schools.png");
+		download(await adjust(blob, scale * 96), "Schools.png");
 		toast("Exported");
 	} catch {
 		toast("Failed");
