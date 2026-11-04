@@ -1,11 +1,13 @@
-import { apply, change, refresh, valid, columns, school } from "./state.js";
+import { load, clean, refresh, valid, columns, school } from "./state.js";
 import { serialize, download } from "./output.js";
 import { toast } from "./notice.js";
 let handle = null;
+let armed = false;
 export let label = "";
 export const detach = () => {
 	handle = null;
 	label = "";
+	armed = false;
 };
 let timer;
 let writing = Promise.resolve();
@@ -74,6 +76,7 @@ const parse = text => {
 				.match(/translate\(\s*[-\d.]+[\s,]+([-\d.]+)/)[1]
 	);
 	return {
+		imported: true,
 		scheme: detected,
 		match: detectMatch(root),
 		headings,
@@ -113,7 +116,7 @@ const parse = text => {
 };
 export const persist = () => {
 	clearTimeout(timer);
-	if (!handle) return;
+	if (!handle || !armed) return;
 	timer = setTimeout(() => {
 		const target = handle;
 		if (!target) return;
@@ -125,10 +128,10 @@ export const persist = () => {
 				} finally {
 					await writable.close();
 				}
+				clean();
 			} catch {
 				if (handle === target) {
-					handle = null;
-					label = "";
+					detach();
 					refresh();
 				}
 				toast("Failed");
@@ -157,8 +160,7 @@ export const save = async () => {
 				(await handle.requestPermission({ mode: "readwrite" })) !==
 					"granted"
 			) {
-				handle = null;
-				label = "";
+				detach();
 				refresh();
 				toast("Denied");
 				return;
@@ -169,6 +171,8 @@ export const save = async () => {
 			} finally {
 				await writable.close();
 			}
+			armed = true;
+			clean();
 			label = handle.name || "Schools.svg";
 			refresh();
 			toast("Saved");
@@ -177,6 +181,7 @@ export const save = async () => {
 				new Blob([await serialize()], { type: "image/svg+xml" }),
 				"Schools.svg"
 			);
+			clean();
 			toast("Saved");
 		}
 	} catch (error) {
@@ -189,6 +194,7 @@ export const open = async () => {
 		let text;
 		if (window.showOpenFilePicker) {
 			[choice] = await showOpenFilePicker({
+				mode: "read",
 				types: [
 					{
 						description: "SVG graphic",
@@ -196,13 +202,6 @@ export const open = async () => {
 					},
 				],
 			});
-			if (
-				(await choice.requestPermission({ mode: "readwrite" })) !==
-				"granted"
-			) {
-				toast("Denied");
-				return;
-			}
 			text = await read(await choice.getFile());
 		} else {
 			const file = await new Promise((resolve, reject) => {
@@ -220,12 +219,13 @@ export const open = async () => {
 		}
 		const data = parse(text);
 		if (!data.rows?.length) throw new Error("Empty");
-		apply(data);
-		handle = choice;
-		label = choice ? choice.name : "";
-		change();
+		handle = data.imported ? null : choice;
+		armed = false;
+		label = handle ? handle.name : "";
+		load(data);
 		toast("Opened");
 	} catch (error) {
-		if (error?.name !== "AbortError") toast("Failed");
+		if (error?.name !== "AbortError")
+			toast(error?.message === "Too large" ? "File too large" : "Not a Schools file");
 	}
 };
