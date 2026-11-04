@@ -13,7 +13,7 @@ restore();
 addEventListener("hashchange", restore);
 addEventListener("beforeunload", event => {
 	if (dirty) {
-		e.preventDefault();
-		e.returnValue = "";
+		event.preventDefault();
+		event.returnValue = "";
 	}
 });
