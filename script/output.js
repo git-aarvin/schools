@@ -2,7 +2,7 @@ import { state } from "./state.js";
 import { crop, bounds } from "./chart.js";
 import { embed } from "./font.js";
 import { toast } from "./notice.js";
-const resolution = 300;
+const resolution = 600;
 export const download = (blob, name) => {
 	const link = document.createElement("a");
 	const url = URL.createObjectURL(blob);
