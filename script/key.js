@@ -1,9 +1,8 @@
-import { jump, preview } from "./state.js";
+import { jump } from "./state.js";
 import { open, save } from "./file.js";
 import { image } from "./output.js";
-export const modifier = /Mac|iP(hone|ad)/.test(navigator.platform)
-	? "⌘"
-	: "Ctrl";
+const platform = navigator.userAgentData?.platform || navigator.platform || "";
+export const modifier = /Mac|iP(hone|ad|od)/.test(platform) ? "⌘" : "Ctrl";
 export const listen = () => {
 	document.querySelectorAll("kbd").forEach(node => {
 		node.textContent = node.textContent.replaceAll("Ctrl", modifier);
@@ -12,17 +11,23 @@ export const listen = () => {
 		if (
 			(!event.ctrlKey && !event.metaKey) ||
 			event.altKey ||
-			event.shiftKey
+			event.isComposing ||
+			typeof event.key !== "string"
 		)
 			return;
 		const key = event.key.toLowerCase();
 		if (key === "z" || key === "y") {
-			if (!preview) jump(key === "z" ? -1 : 1);
-		} else if (key === "o") open();
-		else if (key === "s") save();
-		else if (key === "e") image();
-		else if (key === "p") print();
-		else return;
+			if (key === "y" && event.shiftKey) return;
+			jump(key === "y" || event.shiftKey ? 1 : -1);
+		} else if (event.shiftKey) return;
+		else if (key === "o" || key === "s" || key === "e" || key === "p") {
+			if (!event.repeat) {
+				if (key === "o") open();
+				else if (key === "s") save();
+				else if (key === "e") image();
+				else print();
+			}
+		} else return;
 		event.preventDefault();
 	});
 };
