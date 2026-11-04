@@ -1,4 +1,4 @@
-import { state, base, load, valid } from "./state.js";
+import { state, base, load, valid, dirty } from "./state.js";
 import { detach } from "./file.js";
 import { toast } from "./notice.js";
 const prefix = "s1";
@@ -152,7 +152,11 @@ export const share = async () => {
 };
 export const restore = async () => {
 	const hash = location.hash.slice(1);
-	if (!hash.startsWith(prefix) || hash.length > bound) return;
+	if (!hash.startsWith(prefix)) return;
+	if (hash.length > bound) {
+		toast("Link too long");
+		return;
+	}
 	try {
 		const value = hash.slice(prefix.length);
 		const mode = value[0];
@@ -167,7 +171,10 @@ export const restore = async () => {
 			raw = await inflate(bytes);
 		} else return;
 		const data = expand(JSON.parse(new TextDecoder().decode(raw)));
+		if (dirty && !confirm("Replace the current chart?")) return;
 		detach();
 		load(data);
-	} catch {}
+	} catch {
+		toast("Bad link");
+	}
 };
