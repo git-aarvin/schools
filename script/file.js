@@ -19,6 +19,13 @@ const read = async file => {
 	if (file.size > capacity) throw new Error("Too large");
 	return file.text();
 };
+const detectMatch = root =>
+	[...root.querySelectorAll("text")].some(node => {
+		const value = node.textContent.trim();
+		const x = node.getAttribute("x");
+		return (x === "137" && value === "Match") ||
+			(["394", "474", "554"].includes(x) && value === "M" && !node.hasAttribute("y"));
+	});
 const theme = root => {
 	const fill = [...root.children]
 		.find(node => node.localName === "path" && node.getAttribute("d")?.startsWith("M0 0h"))
@@ -45,6 +52,7 @@ const parse = text => {
 		if (valid(data))
 			return {
 				...data,
+				match: typeof data.match === "boolean" ? data.match : detectMatch(root),
 				scheme: data.scheme === "dark" || data.scheme === "light" ? data.scheme : detected,
 			};
 	} catch {}
@@ -67,6 +75,7 @@ const parse = text => {
 	);
 	return {
 		scheme: detected,
+		match: detectMatch(root),
 		headings,
 		rows: groups.map((node, index) => {
 			const name = node.querySelector('text[x="84"]').textContent;
