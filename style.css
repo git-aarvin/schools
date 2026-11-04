@@ -199,7 +199,6 @@ kbd {
 	font: 11px sans-serif;
 	fill: var(--ctl-text);
 	text-anchor: middle;
-	dominant-baseline: central;
 	pointer-events: none;
 }
 .control:hover circle {
