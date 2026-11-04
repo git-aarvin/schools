@@ -143,8 +143,3 @@ export const mount = (host, view) => {
 	fill(root, view);
 	return host;
 };
-export const release = host => {
-	roots.delete(host);
-	host.replaceChildren();
-	return host;
-};
