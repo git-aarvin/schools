@@ -35,8 +35,6 @@ const rank = (term, query) => {
 	if (term.text.includes(query)) return 3;
 	return 0;
 };
-// Smallest number of edits (insert, delete, replace, or swap of two
-// neighbouring letters) that turns the query into a prefix of text.
 const near = (query, text) => {
 	const m = query.length;
 	const n = text.length;
@@ -65,10 +63,7 @@ const near = (query, text) => {
 	}
 	return Math.min(...previous);
 };
-// Words under five letters must match exactly; longer words may contain typos.
 const allowance = query => (query.length < 5 ? 0 : query.length < 8 ? 1 : 2);
-// Matches each typed word, in order, against the start of a word in the name.
-// Returns the total number of typos, or Infinity if some word cannot match.
 const reach = (term, tokens) => {
 	let typos = 0;
 	let at = 0;
@@ -88,7 +83,6 @@ const reach = (term, tokens) => {
 	}
 	return typos;
 };
-// Exact matches score 1 to 3. Matches with typos score 4 or 5, after exact ones.
 const grade = (entry, query, allowed) => {
 	const tokens = query.split(" ");
 	let best = Infinity;
