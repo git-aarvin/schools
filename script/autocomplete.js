@@ -10,29 +10,31 @@ let index = -1;
 let picking = false;
 let tracking = false;
 const clean = text => text.toLowerCase().replace(/\s+/g, " ").trim();
-const entries = schools.map(name => {
-	const text = name.toLowerCase();
-	const words = text.split(/[\s&]+/).filter(Boolean);
-	return {
-		name,
-		text,
-		words,
-		initials: words.map(word => word[0]).join(""),
-		key: clean(name),
-	};
+const entries = schools.map(({ name, aliases }) => {
+	const terms = [name, ...aliases].map(value => {
+		const text = value.toLowerCase();
+		const words = text.split(/[\s&]+/).filter(Boolean);
+		return {
+			text,
+			words,
+			initials: words.map(word => word[0]).join(""),
+			key: clean(value),
+		};
+	});
+	return { name, terms, key: clean(name) };
 });
-const rank = (entry, query) => {
-	if (entry.text.startsWith(query)) return 1;
-	if (entry.words.some(word => word.startsWith(query))) return 2;
-	if (entry.initials.startsWith(query)) return 2;
-	if (entry.text.includes(query)) return 3;
+const rank = (term, query) => {
+	if (term.text.startsWith(query)) return 1;
+	if (term.words.some(word => word.startsWith(query))) return 2;
+	if (term.initials.startsWith(query)) return 2;
+	if (term.text.includes(query)) return 3;
 	return 0;
 };
 const search = query => {
 	const found = [];
 	for (const entry of entries) {
 		if (entry.key === query) continue;
-		const score = rank(entry, query);
+		const score = Math.min(...entry.terms.map(term => rank(term, query)).filter(Boolean));
 		if (score) found.push({ name: entry.name, score });
 	}
 	found.sort(
@@ -89,7 +91,10 @@ const highlight = () => {
 		option.setAttribute("aria-selected", on ? "true" : "false");
 	});
 	const option = options[index];
-	if (!option || !active) return;
+	if (!option || !active) {
+		active?.removeAttribute("aria-activedescendant");
+		return;
+	}
 	active.setAttribute("aria-activedescendant", option.id);
 	const top = option.offsetTop;
 	const bottom = top + option.offsetHeight;
@@ -160,15 +165,15 @@ const show = (input, names) => {
 	const node = create();
 	active = input;
 	matches = names;
-	index = 0;
+	index = -1;
 	node.replaceChildren(
 		...names.map((name, at) => {
 			const option = document.createElement("div");
 			option.id = `autocomplete-${at}`;
-			option.className = at ? "option" : "option active";
+			option.className = "option";
 			option.dataset.index = at;
 			option.setAttribute("role", "option");
-			option.setAttribute("aria-selected", at ? "false" : "true");
+			option.setAttribute("aria-selected", "false");
 			option.title = name;
 			option.textContent = name;
 			return option;
@@ -181,7 +186,6 @@ const show = (input, names) => {
 		160
 	)}px`;
 	input.setAttribute("aria-expanded", "true");
-	input.setAttribute("aria-activedescendant", options[0].id);
 	place();
 	track();
 };
@@ -203,6 +207,7 @@ export const suggest = input => {
 };
 export const navigate = event => {
 	if (!active || !list || list.hidden || event.target !== active) return false;
+	if (event.altKey) return false;
 	if (event.key === "Escape") {
 		event.preventDefault();
 		close();
@@ -212,7 +217,9 @@ export const navigate = event => {
 		event.preventDefault();
 		if (!options.length) return true;
 		const step = event.key === "ArrowDown" ? 1 : -1;
-		index = (index + step + options.length) % options.length;
+		index = index < 0
+			? (step > 0 ? 0 : options.length - 1)
+			: (index + step + options.length) % options.length;
 		highlight();
 		return true;
 	}
@@ -224,3 +231,4 @@ export const navigate = event => {
 	}
 	return false;
 };
+create();
