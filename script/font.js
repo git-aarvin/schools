@@ -38,6 +38,6 @@ const load = async () => {
 			return `@font-face{font-family:Charter;src:url(data:font/woff2;base64,${data}) format("woff2");font-weight:${weight};font-style:${style};font-display:block}`;
 		})
 	);
-	return rules.join("");
+	return `:root{--charter-notice:"Charter (c) Bitstream Inc. See font/LICENSE"}${rules.join("")}`;
 };
 export const embed = () => (cache ??= load().catch(() => ""));
