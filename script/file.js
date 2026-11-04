@@ -147,7 +147,7 @@ export const save = async () => {
 					suggestedName: label || "Schools.svg",
 					types: [
 						{
-							description: "SVG graphic",
+							description: "SVG",
 							accept: { "image/svg+xml": [".svg"] },
 						},
 					],
@@ -197,7 +197,7 @@ export const open = async () => {
 				mode: "read",
 				types: [
 					{
-						description: "SVG graphic",
+						description: "SVG",
 						accept: { "image/svg+xml": [".svg"] },
 					},
 				],
@@ -226,6 +226,6 @@ export const open = async () => {
 		toast("Opened");
 	} catch (error) {
 		if (error?.name !== "AbortError")
-			toast(error?.message === "Too large" ? "File too large" : "Not a Schools file");
+			toast(error?.message === "Too large" ? "Oversized" : "Invalid");
 	}
 };
