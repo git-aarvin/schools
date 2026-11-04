@@ -1,7 +1,6 @@
 import { state, base, load, valid } from "./state.js";
 import { detach } from "./file.js";
 import { toast } from "./notice.js";
-
 const prefix = "s1";
 const kinds = "TRS";
 const binary = bytes => {
@@ -19,6 +18,8 @@ const decode = text => {
 	);
 	return Uint8Array.from(value, char => char.charCodeAt(0));
 };
+const bound = 24000;
+const capacity = 1 << 20;
 const deflate = async bytes => {
 	const stream = new Blob([bytes])
 		.stream()
@@ -26,10 +27,29 @@ const deflate = async bytes => {
 	return new Uint8Array(await new Response(stream).arrayBuffer());
 };
 const inflate = async bytes => {
-	const stream = new Blob([bytes])
+	const reader = new Blob([bytes])
 		.stream()
-		.pipeThrough(new DecompressionStream("deflate-raw"));
-	return new Uint8Array(await new Response(stream).arrayBuffer());
+		.pipeThrough(new DecompressionStream("deflate-raw"))
+		.getReader();
+	const chunks = [];
+	let total = 0;
+	for (;;) {
+		const { done, value } = await reader.read();
+		if (done) break;
+		total += value.length;
+		if (total > capacity) {
+			reader.cancel();
+			throw 0;
+		}
+		chunks.push(value);
+	}
+	const output = new Uint8Array(total);
+	let at = 0;
+	for (const chunk of chunks) {
+		output.set(chunk, at);
+		at += chunk.length;
+	}
+	return output;
 };
 const pack = row =>
 	(row.quality - 1) * 9 + row.price * 3 + kinds.indexOf(row.type);
@@ -99,10 +119,13 @@ const copy = async value => {
 	const input = document.createElement("textarea");
 	input.value = value;
 	input.setAttribute("readonly", "");
+	input.setAttribute("aria-hidden", "true");
 	input.style.position = "fixed";
 	input.style.left = "-9999px";
+	input.style.fontSize = "16px";
 	document.body.append(input);
 	input.select();
+	input.setSelectionRange(0, value.length);
 	const copied = document.execCommand("copy");
 	input.remove();
 	if (!copied) throw 0;
@@ -122,13 +145,16 @@ export const share = async () => {
 };
 export const restore = async () => {
 	const hash = location.hash.slice(1);
-	if (!hash.startsWith(prefix)) return;
+	if (!hash.startsWith(prefix) || hash.length > bound) return;
 	try {
 		const value = hash.slice(prefix.length);
 		const mode = value[0];
 		const bytes = decode(value.slice(1));
 		let raw;
-		if (mode === "j") raw = bytes;
+		if (mode === "j") {
+			if (bytes.length > capacity) return;
+			raw = bytes;
+		}
 		else if (mode === "z") {
 			if (typeof DecompressionStream !== "function") return;
 			raw = await inflate(bytes);
