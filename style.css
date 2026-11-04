@@ -23,6 +23,14 @@
 	--background: #ececec;
 	--foreground: #666;
 	--icon: #333;
+	--muted: #707070;
+	--accent: #185fa5;
+	--on-accent: #fff;
+	--popup-bg: #fff;
+	--popup-fg: #1a1a1a;
+	--popup-line: #d4d4d4;
+	--toast-bg: #222;
+	--toast-fg: #fff;
 	color-scheme: light dark;
 }
 @media (prefers-color-scheme: dark) {
@@ -30,16 +38,63 @@
 		--background: #1a1a1a;
 		--foreground: #999;
 		--icon: #ddd;
+		--muted: #8a8a8a;
+		--accent: #6cb0f5;
+		--on-accent: #111;
+		--popup-bg: #2b2b2b;
+		--popup-fg: #f0f0f0;
+		--popup-line: #484848;
+		--toast-bg: #eee;
+		--toast-fg: #111;
 	}
+}
+#chart.light {
+	--accent: #185fa5;
+	--on-accent: #fff;
+	--tint1: #185fa510;
+	--tint2: #185fa51a;
+	--tint3: #185fa540;
+	--ctl-fill: #fff;
+	--ctl-stroke: #aaa;
+	--ctl-text: #555;
+	--grip: #aaa;
+	--grip-hover: #666;
+	--ghost: #999;
+	--placeholder: #999;
+}
+#chart.dark {
+	--accent: #6cb0f5;
+	--on-accent: #111;
+	--tint1: #6cb0f510;
+	--tint2: #6cb0f51f;
+	--tint3: #6cb0f559;
+	--ctl-fill: #333;
+	--ctl-stroke: #888;
+	--ctl-text: #ddd;
+	--grip: #888;
+	--grip-hover: #ccc;
+	--ghost: #888;
+	--placeholder: #888;
 }
 html, body {
 	margin: 0;
 	background: var(--background);
+	-webkit-text-size-adjust: 100%;
+	text-size-adjust: 100%;
+}
+.sr-only {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	margin: -1px;
+	overflow: hidden;
+	clip: rect(0 0 0 0);
+	white-space: nowrap;
 }
 body {
 	display: grid;
 	place-items: center;
-	padding: 24px 12px;
+	padding: max(24px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
 	font: 12px/1.5 system-ui, sans-serif;
 	color: var(--foreground);
 }
@@ -52,15 +107,14 @@ main {
 #host {
 	width: 100%;
 }
-#host.preview .edit {
-	display: none !important;
-}
 #chart {
 	width: 100%;
 	height: auto;
 	display: block;
 	box-shadow: 0 2px 20px #0003;
+	-webkit-user-select: none;
 	user-select: none;
+	-webkit-tap-highlight-color: transparent;
 }
 .toolbar {
 	display: flex;
@@ -68,6 +122,7 @@ main {
 	gap: 4px;
 	margin-bottom: 10px;
 	min-height: 32px;
+	flex-wrap: wrap;
 }
 .toolbar .status {
 	flex: 1;
@@ -91,15 +146,19 @@ main {
 .toolbar button:hover:not(:disabled) {
 	background: #8882;
 }
+.toolbar button {
+	touch-action: manipulation;
+}
 .toolbar button:focus-visible {
-	outline: 2px solid #185fa5;
+	outline: 2px solid var(--accent);
+	outline-offset: 1px;
 }
 .toolbar button:disabled {
 	opacity: 0.3;
 	cursor: default;
 }
 .toolbar button.muted {
-	color: #999;
+	color: var(--muted);
 }
 footer {
 	display: flex;
@@ -133,38 +192,38 @@ kbd {
 	cursor: pointer;
 }
 .control circle {
-	fill: #fff;
-	stroke: #aaa;
+	fill: var(--ctl-fill);
+	stroke: var(--ctl-stroke);
 }
 .control text {
 	font: 11px sans-serif;
-	fill: #555;
+	fill: var(--ctl-text);
 	text-anchor: middle;
 	dominant-baseline: central;
 	pointer-events: none;
 }
 .control:hover circle {
-	fill: #185fa5;
-	stroke: #185fa5;
+	fill: var(--accent);
+	stroke: var(--accent);
 }
 .control:hover text {
-	fill: #fff;
+	fill: var(--on-accent);
 }
 .control.on circle {
-	stroke: #185fa5;
+	stroke: var(--accent);
 }
 .ghost {
 	fill: none;
-	stroke: #999;
+	stroke: var(--ghost);
 	stroke-width: 0.8;
 	stroke-dasharray: 2 2;
 	pointer-events: none;
 }
 .grip {
-	fill: #aaa;
+	fill: var(--grip);
 }
 .row:hover .grip {
-	fill: #666;
+	fill: var(--grip-hover);
 }
 .target {
 	fill: transparent;
@@ -175,6 +234,8 @@ kbd {
 	touch-action: none;
 }
 .edit input {
+	-webkit-appearance: none;
+	appearance: none;
 	display: block;
 	box-sizing: border-box;
 	width: 100%;
@@ -186,18 +247,18 @@ kbd {
 	border-radius: 2px;
 	background: 0 0;
 	color: transparent;
-	caret-color: #185fa5;
+	caret-color: var(--accent);
 	font: 14px/20px Charter, Georgia, serif;
 	user-select: text;
 }
 .edit input:hover {
-	background: #185fa510;
+	background: var(--tint1);
 }
 .edit input:focus {
-	background: #185fa51a;
+	background: var(--tint2);
 }
 .edit input::selection {
-	background: #185fa540;
+	background: var(--tint3);
 	color: transparent;
 }
 .edit input.middle {
@@ -205,6 +266,7 @@ kbd {
 	padding: 0;
 }
 .autocomplete {
+	-webkit-user-select: none;
 	position: fixed;
 	z-index: 10;
 	box-sizing: border-box;
@@ -212,11 +274,11 @@ kbd {
 	max-width: min(340px, calc(100vw - 16px));
 	overflow-y: auto;
 	padding: 4px;
-	border: 1px solid #d4d4d4;
+	border: 1px solid var(--popup-line);
 	border-radius: 8px;
-	background: #fff;
+	background: var(--popup-bg);
 	box-shadow: 0 8px 24px #0003;
-	color: #1a1a1a;
+	color: var(--popup-fg);
 	font: 14px/1.5 Charter, Georgia, serif;
 	user-select: none;
 }
@@ -232,16 +294,17 @@ kbd {
 	cursor: pointer;
 }
 .autocomplete .option.active {
-	background: #185fa5;
-	color: #fff;
+	background: var(--accent);
+	color: var(--on-accent);
 }
 #toast {
 	position: fixed;
-	bottom: 18px;
+	bottom: max(18px, env(safe-area-inset-bottom));
 	left: 50%;
-	translate: -50% 0;
-	background: #222;
-	color: #fff;
+	transform: translateX(-50%);
+	max-width: calc(100vw - 24px);
+	background: var(--toast-bg);
+	color: var(--toast-fg);
 	padding: 6px 12px;
 	border-radius: 6px;
 	opacity: 0;
@@ -251,15 +314,98 @@ kbd {
 #toast.show {
 	opacity: 1;
 }
-.target:focus, .target:focus-visible {
+.target:focus, .target:focus-visible, .control:focus, .control:focus-visible {
 	outline: none;
 }
+.target {
+	touch-action: manipulation;
+	-webkit-tap-highlight-color: transparent;
+}
+.target:focus-visible {
+	fill: var(--tint2);
+	stroke: var(--accent);
+	stroke-width: 2;
+}
+.row:focus-within .control, .row:focus-within .ghost, .control:focus-visible {
+	opacity: 1;
+}
+.control:focus-visible circle {
+	stroke: var(--accent);
+	stroke-width: 2;
+}
+.edit input:focus-visible {
+	box-shadow: inset 0 0 0 2px var(--accent);
+}
+.row .control[aria-disabled="true"] {
+	cursor: default;
+}
+.row:hover .control[aria-disabled="true"], .row:focus-within .control[aria-disabled="true"] {
+	opacity: 0.35;
+}
+.control {
+	touch-action: manipulation;
+	-webkit-tap-highlight-color: transparent;
+}
 .edit input::placeholder {
-	color: #999;
+	color: var(--placeholder);
 }
 @media (hover: none) {
 	footer {
 		display: none;
+	}
+	.control {
+		opacity: 0.75;
+	}
+}
+@media (pointer: coarse) {
+	.toolbar button {
+		width: 44px;
+		height: 44px;
+	}
+	.toolbar {
+		min-height: 44px;
+	}
+}
+@media (max-width: 520px) {
+	.toolbar {
+		justify-content: center;
+	}
+	.toolbar .status {
+		order: 1;
+		flex-basis: 100%;
+	}
+}
+@media (prefers-reduced-motion: reduce) {
+	.control, .ghost, #toast {
+		transition: none;
+	}
+}
+@media (prefers-contrast: more) {
+	:root {
+		--foreground: #000;
+		--icon: #000;
+		--muted: #444;
+	}
+	.toolbar button:hover:not(:disabled) {
+		outline: 1px solid currentColor;
+	}
+	.toolbar button:disabled {
+		opacity: 0.5;
+	}
+}
+@media (prefers-contrast: more) and (prefers-color-scheme: dark) {
+	:root {
+		--foreground: #fff;
+		--icon: #fff;
+		--muted: #bbb;
+	}
+}
+@media (forced-colors: active) {
+	.target:focus-visible, .control:focus-visible circle {
+		stroke: Highlight;
+	}
+	.edit input:focus-visible {
+		outline: 2px solid Highlight;
 	}
 }
 @media print {
