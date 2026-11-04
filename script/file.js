@@ -8,8 +8,18 @@ export const detach = () => {
 	label = "";
 };
 let timer;
-const colors = { "#185fa5": "T", "#a32d2d": "R", "#0f6e56": "S" };
-const detectScheme = root => {
+let writing = Promise.resolve();
+const colors = Object.assign(Object.create(null), {
+	"#185fa5": "T",
+	"#a32d2d": "R",
+	"#0f6e56": "S",
+});
+const capacity = 2 * 1024 * 1024;
+const read = async file => {
+	if (file.size > capacity) throw new Error("Too large");
+	return file.text();
+};
+const theme = root => {
 	const fill = [...root.children]
 		.find(node => node.localName === "path" && node.getAttribute("d")?.startsWith("M0 0h"))
 		?.getAttribute("fill");
@@ -28,7 +38,7 @@ const detectScheme = root => {
 const parse = text => {
 	const document = new DOMParser().parseFromString(text, "image/svg+xml");
 	const root = document.documentElement;
-	const detected = detectScheme(root);
+	const detected = theme(root);
 	try {
 		const metadata = root.getElementsByTagName("metadata")[0].textContent;
 		const data = JSON.parse(metadata);
@@ -95,17 +105,26 @@ const parse = text => {
 export const persist = () => {
 	clearTimeout(timer);
 	if (!handle) return;
-	timer = setTimeout(async () => {
-		try {
-			const writable = await handle.createWritable();
-			await writable.write(await serialize());
-			await writable.close();
-		} catch {
-			handle = null;
-			label = "";
-			refresh();
-			toast("Failed");
-		}
+	timer = setTimeout(() => {
+		const target = handle;
+		if (!target) return;
+		writing = writing.then(async () => {
+			try {
+				const writable = await target.createWritable();
+				try {
+					await writable.write(await serialize());
+				} finally {
+					await writable.close();
+				}
+			} catch {
+				if (handle === target) {
+					handle = null;
+					label = "";
+					refresh();
+				}
+				toast("Failed");
+			}
+		});
 	}, 300);
 };
 export const save = async () => {
@@ -136,8 +155,11 @@ export const save = async () => {
 				return;
 			}
 			const writable = await handle.createWritable();
-			await writable.write(await serialize());
-			await writable.close();
+			try {
+				await writable.write(await serialize());
+			} finally {
+				await writable.close();
+			}
 			label = handle.name || "Schools.svg";
 			refresh();
 			toast("Saved");
@@ -172,7 +194,7 @@ export const open = async () => {
 				toast("Denied");
 				return;
 			}
-			text = await (await choice.getFile()).text();
+			text = await read(await choice.getFile());
 		} else {
 			const file = await new Promise((resolve, reject) => {
 				const input = document.createElement("input");
@@ -185,9 +207,10 @@ export const open = async () => {
 				input.oncancel = () => reject({ name: "AbortError" });
 				input.click();
 			});
-			text = await file.text();
+			text = await read(file);
 		}
 		const data = parse(text);
+		if (!data.rows?.length) throw new Error("Empty");
 		apply(data);
 		handle = choice;
 		label = choice ? choice.name : "";
