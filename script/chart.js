@@ -8,6 +8,11 @@ export const crop = 34;
 export const bounds = width - crop;
 const margin = 12;
 const kinds = { T: "Target", R: "Reach", S: "Safety" };
+const targetLabel = () => (state.match ? "Match" : "Target");
+const toggleMatch = () => {
+	state.match = !state.match;
+	change();
+};
 const who = entry => entry.name || "school";
 const palette = () =>
 	state.scheme === "dark"
@@ -146,13 +151,13 @@ const Header = (index, left, colors) =>
 	change("heading" + index);
 }}"></foreignObject>`;
 const Row = ({ school: entry, index, offset }, last, colors) =>
-	vector`<g class="row" transform="translate(0 ${offset})"><path fill="${colors.background}" d="M58-10h255v20H58z"/><text x="76" text-anchor="end" dominant-baseline="central" font-size="12" fill="${colors.number}" font-family="${family}">${state.numbers && index + 1}</text><text x="84" dominant-baseline="central" font-size="14" fill="${colors.text}" font-family="${family}">${entry.name}</text><path fill="${colors.quality}" d="${squares(entry.quality)}"/>${entry.quality < 3 && vector`<path fill="${colors.quality}" opacity=".15" d="${squares(3, entry.quality)}"/>`}<circle cx="${columns[entry.price]}" r="9" fill="${types[entry.type]}"/><text x="${columns[entry.price]}" text-anchor="middle" dominant-baseline="central" font-size="11" font-weight="bold" fill="#fff" font-family="${family}">${entry.type}</text><g class="edit"><g class="grip"><circle cx="53" cy="-3.5" r=".9"/><circle cx="56.5" cy="-3.5" r=".9"/><circle cx="53" cy="0" r=".9"/><circle cx="56.5" cy="0" r=".9"/><circle cx="53" cy="3.5" r=".9"/><circle cx="56.5" cy="3.5" r=".9"/></g><path class="ghost" d="M284-4.5h9v9h-9zm12 0h9v9h-9zm12 0h9v9h-9z"/>${columns.map(left => vector`<circle class="ghost" cx="${left}" r="9"/>`)}${[0, 1, 2].map(at => vector`<rect class="target" tabindex="0" role="button" aria-label="Quality ${at + 1} of 3 for ${who(entry)}" aria-pressed="${String(at < entry.quality)}" onkeydown="${press(() => {
+	vector`<g class="row" transform="translate(0 ${offset})"><path fill="${colors.background}" d="M58-10h255v20H58z"/><text x="76" text-anchor="end" dominant-baseline="central" font-size="12" fill="${colors.number}" font-family="${family}">${state.numbers && index + 1}</text><text x="84" dominant-baseline="central" font-size="14" fill="${colors.text}" font-family="${family}">${entry.name}</text><path fill="${colors.quality}" d="${squares(entry.quality)}"/>${entry.quality < 3 && vector`<path fill="${colors.quality}" opacity=".15" d="${squares(3, entry.quality)}"/>`}<circle cx="${columns[entry.price]}" r="9" fill="${types[entry.type]}"/><text x="${columns[entry.price]}" text-anchor="middle" dominant-baseline="central" font-size="11" font-weight="bold" fill="#fff" font-family="${family}">${state.match && entry.type === "T" ? "M" : entry.type}</text><g class="edit"><g class="grip"><circle cx="53" cy="-3.5" r=".9"/><circle cx="56.5" cy="-3.5" r=".9"/><circle cx="53" cy="0" r=".9"/><circle cx="56.5" cy="0" r=".9"/><circle cx="53" cy="3.5" r=".9"/><circle cx="56.5" cy="3.5" r=".9"/></g><path class="ghost" d="M284-4.5h9v9h-9zm12 0h9v9h-9zm12 0h9v9h-9z"/>${columns.map(left => vector`<circle class="ghost" cx="${left}" r="9"/>`)}${[0, 1, 2].map(at => vector`<rect class="target" tabindex="0" role="button" aria-label="Quality ${at + 1} of 3 for ${who(entry)}" aria-pressed="${String(at < entry.quality)}" onkeydown="${press(() => {
 	entry.quality = at + 1;
 	change();
 })}" x="${282 + 12 * at}" y="-10" width="12" height="20" onclick="${() => {
 	entry.quality = at + 1;
 	change();
-}}"/>`)}${columns.map((left, at) => vector`<circle class="target" tabindex="0" role="button" aria-label="${(state.headings[at + 1] || "Price " + (at + 1)) + " for " + who(entry) + (entry.price === at ? ", " + kinds[entry.type] + ", activate to change type" : "")}" aria-pressed="${String(entry.price === at)}" onkeydown="${press(() => {
+}}"/>`)}${columns.map((left, at) => vector`<circle class="target" tabindex="0" role="button" aria-label="${(state.headings[at + 1] || "Price " + (at + 1)) + " for " + who(entry) + (entry.price === at ? ", " + (entry.type === "T" ? targetLabel() : kinds[entry.type]) + ", activate to change type" : "")}" aria-pressed="${String(entry.price === at)}" onkeydown="${press(() => {
 	if (entry.price === at) entry.type = next[entry.type];
 	else entry.price = at;
 	change();
@@ -173,8 +178,7 @@ const Row = ({ school: entry, index, offset }, last, colors) =>
 	}
 }}"></foreignObject><rect class="target grab" x="46" y="-10" width="34" height="20" onpointerdown="${event =>
 	drag(event, index)}"/><g class="control" tabindex="0" role="button" aria-label="Add school after ${who(entry)}" onkeydown="${press(() => add(index))}" onclick="${() =>
-	add(index)}"><title>Add</title><circle cx="9" r="5.5"/><text x="9">+</text></g><g class="control" tabindex="0" role="button" aria-label="Delete ${who(entry)}" aria-disabled="${state.rows.length < 2 ? "true" : null}" onkeydown="${press(() => remove(index))}" onclick="${() =>
-	remove(index)}"><title>Delete</title><circle cx="23" r="5.5"/><text x="23">×</text></g>${last && vector`<g class="${entry.gap ? "control on" : "control"}" tabindex="0" role="button" aria-label="Divider after ${who(entry)}" aria-pressed="${String(!!entry.gap)}" onkeydown="${press(() => {
+	add(index)}"><title>Add</title><circle cx="9" r="5.5"/><text x="9">+</text></g><g class="control" tabindex="0" role="button" aria-label="Delete ${who(entry)}" aria-disabled="${state.rows.length < 2 ? "true" : null}" onkeydown="${press(() => remove(index))}" onclick="${() => remove(index)}"><title>Delete</title><circle cx="23" r="5.5"/><text x="23">×</text></g>${last && vector`<g class="${entry.gap ? "control on" : "control"}" tabindex="0" role="button" aria-label="Divider after ${who(entry)}" aria-pressed="${String(!!entry.gap)}" onkeydown="${press(() => {
 	entry.gap = !entry.gap;
 	change();
 })}" onclick="${() => {
@@ -205,7 +209,7 @@ const Text = (
 	change(key);
 }}"></foreignObject>`;
 const Legend = bottom =>
-	vector`<g transform="translate(0 ${bottom + 36})" font-family="${family}" font-size="11" fill="${palette().heading}">${[["S", "Safety"], ["T", "Target"], ["R", "Reach"]].map(([key, label], index) => vector`<circle cx="${67 + 60 * index}" r="7" fill="${types[key]}"/><text x="${67 + 60 * index}" text-anchor="middle" dominant-baseline="central" font-size="9" font-weight="bold" fill="#fff">${key}</text><text x="${77 + 60 * index}" dominant-baseline="central">${label}</text>`)}</g>`;
+	vector`<g transform="translate(0 ${bottom + 36})" font-family="${family}" font-size="11" fill="${palette().heading}">${[["S", "Safety"], [state.match ? "M" : "T", targetLabel()], ["R", "Reach"]].map(([key, label], index) => index === 1 ? vector`<g class="target" role="button" tabindex="0" aria-label="${label} category name. Activate to switch to ${state.match ? "Target" : "Match"}." aria-pressed="${String(!!state.match)}" onkeydown="${press(toggleMatch)}" onclick="${toggleMatch}"><circle cx="${67 + 60 * index}" r="7" fill="${types.T}"/><text x="${67 + 60 * index}" text-anchor="middle" dominant-baseline="central" font-size="9" font-weight="bold" fill="#fff">${key}</text><text x="${77 + 60 * index}" dominant-baseline="central" fill="${palette().heading}">${label}</text></g>` : vector`<circle cx="${67 + 60 * index}" r="7" fill="${types[key]}"/><text x="${67 + 60 * index}" text-anchor="middle" dominant-baseline="central" font-size="9" font-weight="bold" fill="#fff">${key}</text><text x="${77 + 60 * index}" dominant-baseline="central">${label}</text>`)}</g>`;
 export const Chart = () => {
 	const items = layout();
 	const bottom = items[items.length - 1].offset;
