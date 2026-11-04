@@ -63,6 +63,7 @@ const flatten = data => {
 	if (data.title !== base.title) result.t = data.title;
 	if (data.note !== base.note) result.n = data.note;
 	if (data.numbers !== base.numbers) result.b = data.numbers ? 1 : 0;
+	if (data.match !== base.match) result.m = data.match ? 1 : 0;
 	if (data.scheme !== base.scheme) result.d = 1;
 	if (data.headings.some((value, index) => value !== base.headings[index]))
 		result.h = data.headings;
@@ -74,7 +75,12 @@ const flatten = data => {
 	return result;
 };
 const expand = data => {
-	if (!data || !Array.isArray(data.r) || !data.r.length) throw 0;
+	if (
+		!data ||
+		(data.m != null && data.m !== 0 && data.m !== 1) ||
+		!Array.isArray(data.r) ||
+		!data.r.length
+	) throw 0;
 	const rows = data.r.map(item => {
 		if (!Array.isArray(item) || typeof item[0] !== "string") throw 0;
 		const code = item[1];
@@ -91,6 +97,7 @@ const expand = data => {
 		title: typeof data.t === "string" ? data.t : base.title,
 		note: typeof data.n === "string" ? data.n : base.note,
 		numbers: data.b == null ? base.numbers : !!data.b,
+		match: data.m === 1,
 		scheme: data.d ? "dark" : base.scheme,
 		headings,
 		rows,
