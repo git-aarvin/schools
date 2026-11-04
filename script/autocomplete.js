@@ -9,16 +9,21 @@ let matches = [];
 let index = -1;
 let picking = false;
 let tracking = false;
-const clean = text => text.toLowerCase().replace(/\s+/g, " ").trim();
+const clean = text =>
+	text
+		.normalize("NFD")
+		.replace(/[\u0300-\u036f]/g, "")
+		.toLowerCase()
+		.replace(/[^\p{L}\p{N}]+/gu, " ")
+		.trim();
 const entries = schools.map(({ name, aliases }) => {
 	const terms = [name, ...aliases].map(value => {
-		const text = value.toLowerCase();
-		const words = text.split(/[\s&]+/).filter(Boolean);
+		const text = clean(value);
+		const words = text.split(" ").filter(Boolean);
 		return {
 			text,
 			words,
 			initials: words.map(word => word[0]).join(""),
-			key: clean(value),
 		};
 	});
 	return { name, terms, key: clean(name) };
@@ -30,12 +35,79 @@ const rank = (term, query) => {
 	if (term.text.includes(query)) return 3;
 	return 0;
 };
+// Smallest number of edits (insert, delete, replace, or swap of two
+// neighbouring letters) that turns the query into a prefix of text.
+const near = (query, text) => {
+	const m = query.length;
+	const n = text.length;
+	let before = null;
+	let previous = Array.from({ length: n + 1 }, (_, j) => j);
+	for (let i = 1; i <= m; i++) {
+		const row = [i];
+		for (let j = 1; j <= n; j++) {
+			const cost = query[i - 1] === text[j - 1] ? 0 : 1;
+			let best = Math.min(
+				previous[j] + 1,
+				row[j - 1] + 1,
+				previous[j - 1] + cost
+			);
+			if (
+				i > 1 &&
+				j > 1 &&
+				query[i - 1] === text[j - 2] &&
+				query[i - 2] === text[j - 1]
+			)
+				best = Math.min(best, before[j - 2] + 1);
+			row[j] = best;
+		}
+		before = previous;
+		previous = row;
+	}
+	return Math.min(...previous);
+};
+// Words under five letters must match exactly; longer words may contain typos.
+const allowance = query => (query.length < 5 ? 0 : query.length < 8 ? 1 : 2);
+// Matches each typed word, in order, against the start of a word in the name.
+// Returns the total number of typos, or Infinity if some word cannot match.
+const reach = (term, tokens) => {
+	let typos = 0;
+	let at = 0;
+	for (const token of tokens) {
+		let best = Infinity;
+		let next = -1;
+		for (let j = at; j < term.words.length && best > 0; j++) {
+			const cost = near(token, term.words[j]);
+			if (cost < best) {
+				best = cost;
+				next = j;
+			}
+		}
+		if (next < 0 || best > allowance(token)) return Infinity;
+		typos += best;
+		at = next + 1;
+	}
+	return typos;
+};
+// Exact matches score 1 to 3. Matches with typos score 4 or 5, after exact ones.
+const grade = (entry, query, allowed) => {
+	const tokens = query.split(" ");
+	let best = Infinity;
+	for (const term of entry.terms) {
+		const exact = rank(term, query);
+		if (exact) best = Math.min(best, exact);
+		const typos = reach(term, tokens);
+		if (typos === 0) best = Math.min(best, 2);
+		else if (typos <= allowed) best = Math.min(best, 3 + typos);
+	}
+	return best;
+};
 const search = query => {
+	const allowed = allowance(query);
 	const found = [];
 	for (const entry of entries) {
 		if (entry.key === query) continue;
-		const score = Math.min(...entry.terms.map(term => rank(term, query)).filter(Boolean));
-		if (score) found.push({ name: entry.name, score });
+		const score = grade(entry, query, allowed);
+		if (score < Infinity) found.push({ name: entry.name, score });
 	}
 	found.sort(
 		(a, b) =>
@@ -134,7 +206,7 @@ const create = () => {
 	list.id = "autocomplete";
 	list.className = "autocomplete";
 	list.setAttribute("role", "listbox");
-	list.setAttribute("aria-label", "School names");
+	list.setAttribute("aria-label", "Schools");
 	list.hidden = true;
 	list.addEventListener("pointerdown", event => {
 		const option = event.target.closest(".option");
