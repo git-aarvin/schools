@@ -1,4 +1,4 @@
-import { watch } from "./state.js";
+import { watch, dirty } from "./state.js";
 import { draw } from "./page.js";
 import { persist } from "./file.js";
 import { listen } from "./key.js";
@@ -11,3 +11,9 @@ listen();
 draw();
 restore();
 addEventListener("hashchange", restore);
+addEventListener("beforeunload", event => {
+	if (dirty) {
+		e.preventDefault();
+		e.returnValue = "";
+	}
+});
