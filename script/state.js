@@ -15,6 +15,7 @@ export const base = {
 	title: "Schools",
 	note: "",
 	numbers: true,
+	match: false,
 	scheme: "light",
 	headings: ["Quality", "$$", "$$$", "$$$+"],
 	rows: [
@@ -31,6 +32,7 @@ export const state = clone(base);
 const text = (value, max) => typeof value === "string" && value.length <= max;
 export const valid = data =>
 	!!data &&
+	(data.match == null || typeof data.match === "boolean") &&
 	Array.isArray(data.headings) &&
 	data.headings.length === 4 &&
 	data.headings.every(value => text(value, 100)) &&
@@ -59,6 +61,7 @@ export const apply = data => {
 	state.title = String(data.title ?? "").slice(0, 100);
 	state.note = String(data.note ?? "").slice(0, 100);
 	state.numbers = data.numbers !== false;
+	state.match = data.match === true;
 	state.scheme = data.scheme === "dark" ? "dark" : "light";
 };
 export const history = [JSON.stringify(state)];
