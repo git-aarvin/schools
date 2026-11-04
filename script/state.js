@@ -1,7 +1,8 @@
-export const types = { T: "#185fa5", R: "#a32d2d", S: "#0f6e56" };
-export let preview = false;
-export const togglePreview = () => (preview = !preview);
-export const next = { S: "T", T: "R", R: "S" };
+const table = entries => Object.assign(Object.create(null), entries);
+export const types = table({ T: "#185fa5", R: "#a32d2d", S: "#0f6e56" });
+export const limit = 100;
+const clone = value => JSON.parse(JSON.stringify(value));
+export const next = table({ S: "T", T: "R", R: "S" });
 export const columns = [394, 474, 554];
 export const school = (name, quality, price, type, gap) => ({
 	name,
@@ -26,28 +27,37 @@ export const base = {
 		school("Arizona State", 1, 1, "S"),
 	],
 };
-export const state = structuredClone(base);
+export const state = clone(base);
+const text = (value, max) => typeof value === "string" && value.length <= max;
 export const valid = data =>
-	data &&
+	!!data &&
 	Array.isArray(data.headings) &&
 	data.headings.length === 4 &&
+	data.headings.every(value => text(value, 100)) &&
 	Array.isArray(data.rows) &&
-	data.rows.length &&
+	data.rows.length > 0 &&
+	data.rows.length <= limit &&
 	data.rows.every(
 		row =>
-			row &&
-			typeof row.name === "string" &&
+			!!row &&
+			text(row.name, 100) &&
+			Number.isInteger(row.quality) &&
 			row.quality >= 1 &&
 			row.quality <= 3 &&
+			Number.isInteger(row.price) &&
 			row.price >= 0 &&
 			row.price <= 2 &&
-			types[row.type]
+			!!types[row.type]
 	);
 export const apply = data => {
-	state.headings = data.headings;
-	state.rows = data.rows;
-	state.title = data.title ?? "";
-	state.note = data.note ?? "";
+	state.headings = data.headings.slice(0, 4).map(value => String(value).slice(0, 100));
+	state.rows = data.rows
+		.slice(0, limit)
+		.map(row =>
+			school(String(row.name).slice(0, 40), row.quality, row.price, row.type, row.gap)
+		);
+	state.title = String(data.title ?? "").slice(0, 100);
+	state.note = String(data.note ?? "").slice(0, 100);
 	state.numbers = data.numbers !== false;
 	state.scheme = data.scheme === "dark" ? "dark" : "light";
 };
@@ -92,7 +102,7 @@ export const jump = step => {
 	notify(true);
 };
 export const reset = () => {
-	const data = structuredClone(base);
+	const data = clone(base);
 	data.rows = [school("", 1, 0, "T")];
 	apply(data);
 	change();
