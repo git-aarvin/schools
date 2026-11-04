@@ -10,29 +10,45 @@ let index = -1;
 let picking = false;
 let tracking = false;
 const clean = text => text.toLowerCase().replace(/\s+/g, " ").trim();
-const rank = (name, query) => {
+const entries = schools.map(name => {
 	const text = name.toLowerCase();
-	if (text.startsWith(query)) return 1;
-	const words = text.split(/[\s&]+/);
-	if (words.some(word => word.startsWith(query))) return 2;
-	const initials = words.map(word => word[0]).join("");
-	if (initials.startsWith(query)) return 2;
-	if (text.includes(query)) return 3;
+	const words = text.split(/[\s&]+/).filter(Boolean);
+	return {
+		name,
+		text,
+		words,
+		initials: words.map(word => word[0]).join(""),
+		key: clean(name),
+	};
+});
+const rank = (entry, query) => {
+	if (entry.text.startsWith(query)) return 1;
+	if (entry.words.some(word => word.startsWith(query))) return 2;
+	if (entry.initials.startsWith(query)) return 2;
+	if (entry.text.includes(query)) return 3;
 	return 0;
 };
-const search = query =>
-	schools
-		.filter(name => clean(name) !== query && fits(name))
-		.map(name => ({ name, score: rank(name, query) }))
-		.filter(item => item.score)
-		.sort(
-			(a, b) =>
-				a.score - b.score ||
-				a.name.length - b.name.length ||
-				a.name.localeCompare(b.name)
-		)
-		.slice(0, limit)
-		.map(item => item.name);
+const search = query => {
+	const found = [];
+	for (const entry of entries) {
+		if (entry.key === query) continue;
+		const score = rank(entry, query);
+		if (score) found.push({ name: entry.name, score });
+	}
+	found.sort(
+		(a, b) =>
+			a.score - b.score ||
+			a.name.length - b.name.length ||
+			a.name.localeCompare(b.name)
+	);
+	const names = [];
+	for (const item of found) {
+		if (!fits(item.name)) continue;
+		names.push(item.name);
+		if (names.length >= limit) break;
+	}
+	return names;
+};
 const place = () => {
 	if (!active || !list || list.hidden) return;
 	if (!active.isConnected) return close();
@@ -57,13 +73,13 @@ const place = () => {
 const track = () => {
 	if (tracking) return;
 	tracking = true;
-	addEventListener("scroll", place, true);
+	addEventListener("scroll", place, { capture: true, passive: true });
 	addEventListener("resize", place);
 };
 const untrack = () => {
 	if (!tracking) return;
 	tracking = false;
-	removeEventListener("scroll", place, true);
+	removeEventListener("scroll", place, { capture: true });
 	removeEventListener("resize", place);
 };
 const highlight = () => {
