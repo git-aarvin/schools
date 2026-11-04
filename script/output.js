@@ -8,8 +8,12 @@ export const download = (blob, name) => {
 	const url = URL.createObjectURL(blob);
 	link.href = url;
 	link.download = name;
+	link.rel = "noopener";
+	link.hidden = true;
+	document.body.append(link);
 	link.click();
-	setTimeout(() => URL.revokeObjectURL(url), 1000);
+	link.remove();
+	setTimeout(() => URL.revokeObjectURL(url), 10000);
 };
 export const serialize = async () => {
 	const chart = document.getElementById("chart").cloneNode(true);
@@ -134,23 +138,25 @@ export const image = async () => {
 		if (source) URL.revokeObjectURL(source);
 	}
 };
+const cell = text =>
+	`"${(/^[=+\-@\t\r]/.test(text) ? "'" + text : text).replaceAll('"', '""')}"`;
 export const table = () =>
 	download(
 		new Blob(
 			[
-				"name,quality,price,type\n" +
+				"\ufeffname,quality,price,type\r\n" +
 					state.rows
 						.map(row =>
 							[
-								`"${row.name.replaceAll('"', '""')}"`,
+								cell(row.name),
 								row.quality,
 								row.price + 1,
 								row.type,
 							].join()
 						)
-						.join("\n"),
+						.join("\r\n"),
 			],
-			{ type: "text/csv" }
+			{ type: "text/csv;charset=utf-8" }
 		),
 		"Schools.csv"
 	);
