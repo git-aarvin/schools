@@ -1,9 +1,19 @@
 export const family = "Charter, Georgia, serif";
 const canvas = document.createElement("canvas").getContext("2d");
+const widths = new Map();
 export const fits = (text, font = "14px", limit = 190) => {
-	canvas.font = font + " " + family;
-	return canvas.measureText(text).width <= limit;
+	if (!canvas) return text.length * 7 <= limit;
+	const key = font + "|" + text;
+	let width = widths.get(key);
+	if (width === undefined) {
+		canvas.font = font + " " + family;
+		width = canvas.measureText(text).width;
+		if (widths.size > 2000) widths.clear();
+		widths.set(key, width);
+	}
+	return width <= limit;
 };
+document.fonts?.ready.then(() => widths.clear());
 const files = [
 	["regular", 400, "normal"],
 	["bold", 700, "normal"],
