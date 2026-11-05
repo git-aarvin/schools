@@ -1,7 +1,7 @@
 export const family = "Charter, Georgia, serif";
 const canvas = document.createElement("canvas").getContext("2d");
 const widths = new Map();
-export const fits = (text, font = "14px", limit = 190) => {
+export const fits = (text, font = "14px", limit = 170) => {
 	if (!canvas) return text.length * 7 <= limit;
 	const key = font + "|" + text;
 	let width = widths.get(key);
