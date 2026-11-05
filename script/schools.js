@@ -766,7 +766,7 @@ const names = [
 	entry("University of West Georgia"),
 	entry("University of Windsor"),
 	entry("University of Winnipeg"),
-	entry("University of Wisconsin–Madison"),
+	entry("University of Wisconsin–Madison", ["Wisconsin-Madison"]),
 	entry("University of Wyoming"),
 	entry("Université de Montréal"),
 	entry("Université de Sherbrooke"),
