@@ -26,7 +26,7 @@ const detectMatch = root =>
 		const value = node.textContent.trim();
 		const x = node.getAttribute("x");
 		return (x === "137" && value === "Match") ||
-			(["394", "474", "554"].includes(x) && value === "M" && !node.hasAttribute("y"));
+			(columns.map(String).includes(x) && value === "M" && !node.hasAttribute("y"));
 	});
 const theme = root => {
 	const fill = [...root.children]
