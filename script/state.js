@@ -1,11 +1,11 @@
 const table = entries => Object.assign(Object.create(null), entries);
 export const types = table({ T: "#185fa5", R: "#a32d2d", S: "#0f6e56" });
 export const limit = 100;
-export const max = { name: 40, heading: 14, title: 30, note: 37 };
+export const max = { name: 40, heading: 14, title: 30, note: 54 };
 export const strip = value => value.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, "");
 const clone = value => JSON.parse(JSON.stringify(value));
 export const next = table({ S: "T", T: "R", R: "S" });
-export const columns = [394, 474, 554];
+export const columns = [380, 460, 540];
 export const school = (name, quality, price, type, gap) => ({
 	name,
 	quality,
@@ -22,12 +22,12 @@ export const base = {
 	headings: ["Quality", "$$", "$$$", "$$$+"],
 	rows: [
 		school("University of Washington", 3, 0, "T"),
-		school("Georgia", 3, 1, "R"),
-		school("Virginia", 2, 1, "T", 1),
-		school("Berkeley", 3, 2, "R"),
+		school("Georgia Tech", 3, 1, "R"),
+		school("Virginia Tech", 2, 1, "T", 1),
+		school("UC Berkeley", 3, 2, "R"),
 		school("University of Michigan", 3, 2, "R", 1),
-		school("Texas", 1, 1, "S"),
-		school("Arizona", 1, 1, "S"),
+		school("Texas A&M", 1, 1, "S"),
+		school("Arizona State", 1, 1, "S"),
 	],
 };
 export const state = clone(base);
