@@ -16,7 +16,14 @@ const clean = text =>
 		.toLowerCase()
 		.replace(/[^\p{L}\p{N}]+/gu, " ")
 		.trim();
-const entries = schools.map(({ name, aliases }) => {
+const truncate = text => {
+	let value = text.trimEnd();
+	while (value && !fits(`${value}...`)) {
+		value = value.slice(0, -1).trimEnd();
+	}
+	return value ? `${value}...` : "...";
+};
+const entries = schools.map(({ name, aliases = [] }) => {
 	const terms = [name, ...aliases].map(value => {
 		const text = clean(value);
 		const words = text.split(" ").filter(Boolean);
@@ -26,7 +33,21 @@ const entries = schools.map(({ name, aliases }) => {
 			initials: words.map(word => word[0]).join(""),
 		};
 	});
-	return { name, terms, key: clean(name) };
+	const displayName = fits(name)
+		? name
+		: aliases
+				.filter(alias => alias.trim() && fits(alias))
+				.sort(
+					(a, b) =>
+						a.length - b.length ||
+						a.localeCompare(b)
+				)[0] || truncate(name);
+	return {
+		name,
+		terms,
+		key: clean(name),
+		displayName,
+	};
 });
 const rank = (term, query) => {
 	if (term.text.startsWith(query)) return 1;
@@ -63,7 +84,8 @@ const near = (query, text) => {
 	}
 	return Math.min(...previous);
 };
-const allowance = query => (query.length < 5 ? 0 : query.length < 8 ? 1 : 2);
+const allowance = query =>
+	query.length < 5 ? 0 : query.length < 8 ? 1 : 2;
 const reach = (term, tokens) => {
 	let typos = 0;
 	let at = 0;
@@ -101,7 +123,12 @@ const search = query => {
 	for (const entry of entries) {
 		if (entry.key === query) continue;
 		const score = grade(entry, query, allowed);
-		if (score < Infinity) found.push({ name: entry.name, score });
+		if (score < Infinity) {
+			found.push({
+				name: entry.displayName,
+				score,
+			});
+		}
 	}
 	found.sort(
 		(a, b) =>
@@ -111,7 +138,6 @@ const search = query => {
 	);
 	const names = [];
 	for (const item of found) {
-		if (!fits(item.name)) continue;
 		names.push(item.name);
 		if (names.length >= limit) break;
 	}
@@ -272,7 +298,8 @@ export const suggest = input => {
 	show(input, names);
 };
 export const navigate = event => {
-	if (!active || !list || list.hidden || event.target !== active) return false;
+	if (!active || !list || list.hidden || event.target !== active)
+		return false;
 	if (event.altKey) return false;
 	if (event.key === "Escape") {
 		event.preventDefault();
@@ -283,9 +310,12 @@ export const navigate = event => {
 		event.preventDefault();
 		if (!options.length) return true;
 		const step = event.key === "ArrowDown" ? 1 : -1;
-		index = index < 0
-			? (step > 0 ? 0 : options.length - 1)
-			: (index + step + options.length) % options.length;
+		index =
+			index < 0
+				? step > 0
+					? 0
+					: options.length - 1
+				: (index + step + options.length) % options.length;
 		highlight();
 		return true;
 	}
